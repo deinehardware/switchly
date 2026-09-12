@@ -1,0 +1,40 @@
+services:
+  switchly:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: switchly
+    restart: always
+    user: "33:33"
+    init: true
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    ports:
+      - "${SWITCHLY_HTTP_PORT:-8080}:8080"
+    environment:
+      TZ: "${TZ:-Europe/Berlin}"
+      SWITCHLY_DB_PATH: /var/lib/switchly/database.sqlite
+      SWITCHLY_ADMIN_USER: "${SWITCHLY_ADMIN_USER:-admin}"
+      SWITCHLY_ADMIN_PASSWORD: "${SWITCHLY_ADMIN_PASSWORD:-}"
+      SWITCHLY_BASE_URL: "${SWITCHLY_BASE_URL:-}"
+      SWITCHLY_MONITOR_ENABLED: "${SWITCHLY_MONITOR_ENABLED:-1}"
+      SWITCHLY_MONITOR_INTERVAL: "${SWITCHLY_MONITOR_INTERVAL:-60}"
+      SWITCHLY_LOG_RETENTION_DAYS: "${SWITCHLY_LOG_RETENTION_DAYS:-90}"
+    volumes:
+      - switchly_data:/var/lib/switchly
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,mode=1777
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/api/health.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  switchly_data:
+    name: switchly_data

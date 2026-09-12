@@ -1,2 +1,21 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+* text=auto eol=lf
+
+*.php text diff=php
+*.js text
+*.css text
+*.md text
+*.yml text
+*.yaml text
+*.json text
+*.sh text eol=lf
+*.svg text
+
+*.ico binary
+*.png binary
+*.swb binary
+*.sqlite binary
+
+/.github export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
+

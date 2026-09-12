@@ -1,0 +1,60 @@
+name: Fehler melden
+description: Reproduzierbares Fehlverhalten in Switchly melden
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Danke für die Meldung. Keine Zugangsdaten oder anderen Geheimnisse einfügen.
+  - type: input
+    id: version
+    attributes:
+      label: Switchly-Version
+      placeholder: v1.4.2 Beta
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Umgebung
+      description: Docker/Bare Metal, Betriebssystem und Browser
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Switch und SwOS-Version
+      description: Falls der Fehler einen Switch betrifft
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Tatsächliches Verhalten
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zur Reproduktion
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Vorprüfung
+      options:
+        - label: Ich habe bestehende Issues auf Duplikate geprüft.
+          required: true
+        - label: Die Meldung enthält keine Zugangsdaten oder sensiblen Daten.
+          required: true
+

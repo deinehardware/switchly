@@ -1,0 +1,30 @@
+name: Funktion vorschlagen
+description: Eine nachvollziehbare Erweiterung für Switchly vorschlagen
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Ausgangssituation
+      description: Welches konkrete Problem soll gelöst werden?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Vorschlag
+      description: Wie sollte sich Switchly verhalten?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativen
+      description: Welche anderen Lösungen wurden erwogen?
+  - type: input
+    id: device
+    attributes:
+      label: Betroffene Geräte oder SwOS-Versionen
+

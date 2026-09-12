@@ -1,0 +1,2349 @@
+/*
+ * Zentrales Stylesheet der Switchly-Oberfläche.
+ *
+ * Die Regeln sind nach den sichtbaren Bereichen der Anwendung gegliedert.
+ * Kurze Kommentare erklären jeweils, welches Element oder Verhalten der
+ * folgende CSS-Block beeinflusst. Alle Styles werden direkt hier gepflegt;
+ * es gibt keinen Generator und keine zweite CSS-Quelldatei.
+ */
+
+/* Zentrale Farben, Abstände und Effekte für das gesamte Design. */
+:root {
+  --bg: #0b0d1b;
+  --bg-deep: #070914;
+  --sidebar: #0d1020;
+  --panel: #121528;
+  --panel-2: #171a31;
+  --panel-soft: #0e1121;
+  --border: #2d3150;
+  --border-soft: rgba(148, 163, 184, .13);
+  --text: #f8fafc;
+  --muted: #91a0b5;
+  --muted-2: #65758c;
+  --blue: #6d5dfc;
+  --blue-2: #5848e8;
+  --cyan: #21d4b4;
+  --green: #17d783;
+  --yellow: #f4b400;
+  --red: #ff4d5f;
+  --shadow: 0 18px 55px rgba(0, 0, 0, .28);
+}
+
+/* Setzt für alle Elemente ein berechenbares Box-Modell und entfernt Standardabstände. */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Definiert Hintergrund, Schrift und Mindesthöhe der gesamten Seite. */
+html, body {
+  min-height: 100%;
+  background: radial-gradient(circle at 72% -18%, rgba(109, 93, 252, .12), transparent 34%), radial-gradient(circle at 15% 110%, rgba(33, 212, 180, .07), transparent 30%), var(--bg-deep);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Verhindert eine horizontale Scrollleiste auf schmalen Bildschirmen. */
+body {
+  overflow-x: hidden;
+}
+
+/* Lässt Formularelemente die Schrift der Anwendung übernehmen. */
+button, input, select {
+  font: inherit;
+}
+
+/* Entfernt die farbige Hervorhebung beim Antippen auf Mobilgeräten. */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Entfernt die Standard-Unterstreichung und übernimmt die aktuelle Textfarbe. */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* === Grundlayout und Seitenleiste === */
+
+/* Teilt die Anwendung in eine feste Seitenleiste und den flexiblen Hauptbereich. */
+.app-layout {
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* Hält die Navigation beim Scrollen sichtbar und füllt die Fensterhöhe. */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 18px 18px;
+  background: linear-gradient(180deg, #111429 0%, #0b0e1c 100%);
+  border-right: 1px solid var(--border);
+  z-index: 20;
+}
+
+/* Richtet Logo und Produktnamen im Kopf der Seitenleiste aus. */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 1px 27px;
+}
+
+/* Legt Größe, Rundung und Schatten der Logo-Fläche fest. */
+.logo-box {
+  width: 44px;
+  height: 44px;
+  display: block;
+  flex: 0 0 44px;
+  border-radius: 13px;
+  background: transparent;
+  box-shadow: 0 10px 28px rgba(109, 93, 252, .3);
+}
+
+/* Passt die Bildmarke ohne Verzerrung in die Logo-Fläche ein. */
+.brand-mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 13px;
+  object-fit: contain;
+}
+
+/* Formatiert den Produktnamen in der Seitenleiste. */
+.sidebar-title h2 {
+  font-size: 18px;
+  line-height: 1.05;
+  font-weight: 850;
+  letter-spacing: -.035em;
+}
+
+/* Legt die Darstellung von .sidebar-title span fest. */
+.sidebar-title span {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  letter-spacing: .05em;
+  color: #9da6c5;
+}
+
+/* Stellt die Versionsnummer als kleines abgerundetes Badge dar. */
+.brand-version {
+  display: inline-flex;
+  margin-top: 5px;
+  padding: 2px 6px;
+  border: 1px solid rgba(129, 116, 255, .3);
+  border-radius: 999px;
+  background: rgba(109, 93, 252, .11);
+  color: #b9b1ff;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+/* Legt die Darstellung von .nav-label, .sidebar-section-title>span fest. */
+.nav-label, .sidebar-section-title>span {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .12em;
+  color: #8291a6;
+}
+
+/* Ordnet die Hauptnavigation vertikal mit gleichmäßigen Abständen an. */
+.main-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Legt die Darstellung von .nav-label fest. */
+.nav-label {
+  padding: 0 0 10px;
+}
+
+/* Definiert Größe, Ausrichtung und Grundzustand eines Navigationseintrags. */
+.nav-item {
+  min-height: 40px;
+  padding: 0 11px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 7px;
+  color: #e4ebf4;
+  font-size: 13px;
+  border: 1px solid transparent;
+  transition: .18s ease;
+}
+
+/* Hebt einen Navigationseintrag beim Darüberfahren hervor. */
+.nav-item:hover {
+  background: #171b34;
+  border-color: rgba(109, 93, 252, .2);
+}
+
+/* Kennzeichnet die aktuell geöffnete Ansicht. */
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(109, 93, 252, .24), rgba(33, 212, 180, .08));
+  border-color: rgba(109, 93, 252, .18);
+  color: #72ead7;
+}
+
+/* Legt die Darstellung von .nav-icon fest. */
+.nav-icon {
+  width: 16px;
+  text-align: center;
+  font-size: 15px;
+}
+
+/* Legt die Darstellung von .admin-tag fest. */
+.admin-tag {
+  margin-left: auto;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #2b2f4a;
+  color: #d8daec;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+}
+
+/* Richtet Abschnittsüberschrift und Hinzufügen-Schaltfläche nebeneinander aus. */
+.sidebar-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 22px;
+  margin-bottom: 8px;
+}
+
+/* Formatiert die kompakte Schaltfläche zum Hinzufügen eines Switches. */
+.sidebar-add {
+  height: 31px;
+  padding: 0 10px;
+  border: 1px solid #176db0;
+  border-radius: 6px;
+  background: transparent;
+  color: #53dfc8;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* Passt .sidebar-add:hover beim Darüberfahren mit der Maus an. */
+.sidebar-add:hover {
+  background: rgba(109, 93, 252, .12);
+}
+
+/* Ordnet die Switch-Einträge untereinander an. */
+.switch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Formatiert einen Switch-Eintrag in der Seitenleiste. */
+.switch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 37px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: #071221;
+  color: #dce6f2;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, .018);
+}
+
+/* Passt .switch-item:hover, .switch-item.active beim Darüberfahren mit der Maus an. */
+.switch-item:hover, .switch-item.active {
+  background: #0d1c2f;
+}
+
+/* Zeigt den Verbindungsstatus standardmäßig als grauen Punkt. */
+.switch-item-status {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #526174;
+  box-shadow: 0 0 0 3px rgba(82, 97, 116, .08);
+}
+
+/* Färbt den Statuspunkt eines erreichbaren Switches grün. */
+.switch-item-status.online {
+  background: #18c879;
+  box-shadow: 0 0 12px rgba(24, 200, 121, .4);
+}
+
+/* Schiebt Benutzerinformationen und Abmeldung an das untere Ende. */
+.sidebar-footer {
+  margin-top: auto;
+}
+
+/* Legt die Darstellung von .sidebar-divider fest. */
+.sidebar-divider {
+  height: 1px;
+  background: #1a2a3d;
+  margin-bottom: 13px;
+}
+
+/* Legt die Darstellung von .logged-in fest. */
+.logged-in {
+  font-size: 11px;
+  color: #a9b5c5;
+}
+
+/* Legt die Darstellung von .logged-in strong fest. */
+.logged-in strong {
+  color: #e8eef7;
+}
+
+/* Legt die Darstellung von .role-chip fest. */
+.role-chip {
+  display: inline-flex;
+  margin-top: 7px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: #29364a;
+  color: #d7dfeb;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+/* Gibt Profil- und Abmelde-Schaltfläche dieselbe Grundgröße. */
+.profile-btn, .btn-logout {
+  height: 45px;
+  margin-top: 13px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Legt die Darstellung von .profile-btn fest. */
+.profile-btn {
+  border: 1px solid #2b3b51;
+  background: #0d1a2b;
+}
+
+/* Passt .profile-btn:hover beim Darüberfahren mit der Maus an. */
+.profile-btn:hover {
+  border-color: #3b506b;
+}
+
+/* Markiert die Abmeldung mit der roten Warnfarbe. */
+.btn-logout {
+  border: 1px solid rgba(255, 77, 95, .3);
+  background: rgba(114, 26, 39, .24);
+  color: #ff5365;
+}
+
+/* Passt .btn-logout:hover beim Darüberfahren mit der Maus an. */
+.btn-logout:hover {
+  background: rgba(140, 29, 43, .32);
+}
+
+/* === Hauptansichten, Überschriften und Schaltflächen === */
+
+/* Bestimmt Größe, Scrollverhalten und Innenabstand des Inhaltsbereichs. */
+.main-content {
+  min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 27px 27px 45px;
+  background: linear-gradient(180deg, rgba(9, 19, 33, .3), rgba(4, 10, 18, .2));
+}
+
+/* Blendet Ansichten zunächst aus und begrenzt ihre maximale Breite. */
+.view-section {
+  display: none;
+  max-width: 1420px;
+  margin: 0 auto;
+}
+
+/* Zeigt ausschließlich die aktuell ausgewählte Ansicht an. */
+.view-section.active-view {
+  display: block;
+}
+
+/* Verteilt Seitentitel und Aktionen auf die beiden Seiten der Kopfzeile. */
+.top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 26px;
+}
+
+/* Legt die Darstellung von .subhead fest. */
+.subhead {
+  display: block;
+  color: #53dfc8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .055em;
+  margin-bottom: 6px;
+}
+
+/* Legt die Darstellung von .top-bar h1 fest. */
+.top-bar h1 {
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -.035em;
+}
+
+/* Legt die Darstellung von .top-bar h2 fest. */
+.top-bar h2 {
+  font-size: 24px;
+  letter-spacing: -.02em;
+}
+
+/* Ordnet die Aktionen der Kopfzeile flexibel in einer Zeile an. */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Gemeinsames Erscheinungsbild aller normalen Schaltflächen. */
+.btn {
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 7px;
+  border: 1px solid #293a50;
+  background: #091421;
+  color: #e8eef6;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: .18s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+/* Passt .btn:hover beim Darüberfahren mit der Maus an. */
+.btn:hover {
+  border-color: #405573;
+  background: #0d1b2c;
+}
+
+/* Macht deaktivierte Schaltflächen sichtbar inaktiv und nicht anklickbar. */
+.btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* Hebt die wichtigste Aktion mit dem violetten Farbverlauf hervor. */
+.btn-primary {
+  border-color: #6d5dfc;
+  background: linear-gradient(180deg, #7667ff, #5848e8);
+  box-shadow: 0 8px 22px rgba(109, 93, 252, .18);
+}
+
+/* Passt .btn-primary:hover beim Darüberfahren mit der Maus an. */
+.btn-primary:hover {
+  background: linear-gradient(180deg, #8b7cff, #6452ee);
+}
+
+/* Kennzeichnet gefährliche oder löschende Aktionen rot. */
+.btn-danger {
+  border-color: rgba(255, 77, 95, .35);
+  background: rgba(112, 25, 37, .24);
+  color: #ff6070;
+}
+
+/* Verkleinert Schaltflächen für Tabellen und kompakte Werkzeugleisten. */
+.btn-small {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+/* Legt die Darstellung von .btn-ghost fest. */
+.btn-ghost {
+  background: transparent;
+}
+
+/* === Switch-Übersicht des Dashboards === */
+
+/* Zeigt auf großen Bildschirmen drei Switch-Karten pro Reihe. */
+.switch-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+/* Gemeinsame Grundfläche für Switch-Karten und die Hinzufügen-Kachel. */
+.overview-switch-card, .add-switch-tile {
+  min-height: 320px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: linear-gradient(155deg, #101d30 0%, #0b1727 100%);
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+/* Ordnet den Inhalt einer einzelnen Switch-Karte vertikal an. */
+.overview-switch-card {
+  padding: 20px;
+  text-align: left;
+  color: inherit;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Passt .overview-switch-card:hover beim Darüberfahren mit der Maus an. */
+.overview-switch-card:hover {
+  border-color: #31465f;
+}
+
+/* Legt die Darstellung von .switch-card-top fest. */
+.switch-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Legt die Darstellung von .switch-id-pill fest. */
+.switch-id-pill {
+  padding: 5px 9px;
+  border-radius: 5px;
+  background: #1c2a3e;
+  color: #d4dbe6;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Legt die Darstellung von .switch-card-actions fest. */
+.switch-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+/* Zeigt den Online-Zustand als grünes Status-Badge. */
+.online-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(12, 101, 61, .42);
+  color: #1de58b;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* Wechselt das Status-Badge bei nicht erreichbaren Geräten auf Rot. */
+.online-badge.offline {
+  background: rgba(105, 35, 43, .42);
+  color: #ff6f7e;
+}
+
+/* Legt die Darstellung von .kebab fest. */
+.kebab {
+  color: #dce6f2;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+/* Legt die Darstellung von .switch-card-title fest. */
+.switch-card-title {
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  margin-top: 22px;
+}
+
+/* Legt die Darstellung von .switch-card-address fest. */
+.switch-card-address {
+  font-size: 13px;
+  color: #b4c0cf;
+  margin-top: 5px;
+}
+
+/* Ordnet die drei wichtigsten Gerätewerte in einer kompakten Messwertfläche an. */
+.switch-metrics {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 17px 14px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #091424, #081220);
+  border: 1px solid rgba(255, 255, 255, .018);
+}
+
+/* Legt die Darstellung von .metric span fest. */
+.metric span {
+  display: block;
+  color: #a5b2c3;
+  font-size: 11px;
+  margin-bottom: 7px;
+}
+
+/* Legt die Darstellung von .metric strong fest. */
+.metric strong {
+  display: block;
+  font-size: 15px;
+}
+
+/* Legt die Darstellung von .metric small fest. */
+.metric small {
+  display: block;
+  color: #8da0b4;
+  font-size: 10px;
+  margin-top: 5px;
+}
+
+/* Kennzeichnet .metric small.good, .metric strong.good als erfolgreichen oder positiven Zustand. */
+.metric small.good, .metric strong.good {
+  color: var(--green);
+}
+
+/* Zeichnet den Hintergrund eines horizontalen Auslastungsbalkens. */
+.metric-bar {
+  width: 70px;
+  max-width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: #1d2d43;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+/* Stellt den gefüllten Anteil des Auslastungsbalkens dar. */
+.metric-bar i {
+  display: block;
+  width: 34%;
+  height: 100%;
+  background: #14bd70;
+}
+
+/* Platziert die Schaltfläche zum Öffnen eines Switches am Kartenende. */
+.switch-open-btn {
+  margin-top: auto;
+  height: 39px;
+  border: 1px solid #1e2d41;
+  border-radius: 6px;
+  background: #081321;
+  color: #7c6cff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Passt .switch-open-btn:hover beim Darüberfahren mit der Maus an. */
+.switch-open-btn:hover {
+  border-color: #245184;
+  background: #0b1727;
+}
+
+/* Stellt die Funktion „Switch hinzufügen“ als gestrichelte Kachel dar. */
+.add-switch-tile {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 25px;
+  border-style: dashed;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Passt .add-switch-tile:hover beim Darüberfahren mit der Maus an. */
+.add-switch-tile:hover {
+  border-color: #6d5dfc;
+  background: rgba(109, 93, 252, .025);
+}
+
+/* Legt die Darstellung von .add-switch-inner fest. */
+.add-switch-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Legt die Darstellung von .add-circle fest. */
+.add-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 3px solid #6452ee;
+  color: #7c6cff;
+  font-size: 39px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* Legt die Darstellung von .add-switch-tile strong fest. */
+.add-switch-tile strong {
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+/* Legt die Darstellung von .add-switch-tile span fest. */
+.add-switch-tile span {
+  color: #b0bccb;
+  font-size: 12px;
+  margin-top: 7px;
+}
+
+/* === Karten, Werkzeugleisten und Tabellen === */
+
+/* Gemeinsame Oberfläche für Inhaltskarten. */
+.card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: linear-gradient(160deg, #101d30 0%, #0b1727 100%);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+/* Legt die Darstellung von .dashboard-log-card fest. */
+.dashboard-log-card {
+  margin-top: 18px;
+}
+
+/* Verteilt Überschrift und Filter im Kopf des Protokollbereichs. */
+.logs-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 17px;
+}
+
+/* Legt die Darstellung von .section-title-row fest. */
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Legt die Darstellung von .section-title-row h2 fest. */
+.section-title-row h2 {
+  font-size: 17px;
+}
+
+/* Legt die Darstellung von .admin-only-badge fest. */
+.admin-only-badge {
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #263449;
+  color: #cbd5e1;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* Ordnet Filter- und Suchfelder der Protokollansicht an. */
+.logs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Vereinheitlicht Auswahlfelder, Suchfelder und Formulareingaben. */
+.control-select, .input-search, .log-search, .form-group input, .form-group select {
+  height: 38px;
+  border: 1px solid #2a3a50;
+  border-radius: 6px;
+  background: #091423;
+  color: #ecf2f8;
+  outline: none;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+/* Markiert das aktuell fokussierte Eingabefeld mit einem violetten Rahmen. */
+.control-select:focus, .input-search:focus, .log-search:focus, .form-group input:focus, .form-group select:focus {
+  border-color: #6d5dfc;
+  box-shadow: 0 0 0 3px rgba(109, 93, 252, .12);
+}
+
+/* Legt die Darstellung von .control-select fest. */
+.control-select {
+  min-width: 130px;
+}
+
+/* Legt die Darstellung von .log-search-wrap fest. */
+.log-search-wrap {
+  position: relative;
+  width: 235px;
+}
+
+/* Legt die Darstellung von .log-search-wrap.compact fest. */
+.log-search-wrap.compact {
+  width: 260px;
+}
+
+/* Legt die Darstellung von .log-search fest. */
+.log-search {
+  width: 100%;
+  padding-right: 35px;
+}
+
+/* Legt die Darstellung von .log-search-wrap>span fest. */
+.log-search-wrap>span {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9eacc0;
+  font-size: 18px;
+  pointer-events: none;
+}
+
+/* Ermöglicht horizontales Scrollen, wenn eine Tabelle zu breit wird. */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Nutzt die verfügbare Breite und verhindert zu schmale Datentabellen. */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+/* Legt die Darstellung von th fest. */
+th {
+  height: 39px;
+  text-align: left;
+  color: #90a0b4;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .07em;
+  border-bottom: 1px solid #26364b;
+}
+
+/* Legt die Darstellung von td fest. */
+td {
+  height: 38px;
+  border-bottom: 1px solid rgba(47, 65, 88, .55);
+  font-size: 11px;
+  color: #d0dae7;
+  padding-right: 12px;
+}
+
+/* Passt tbody tr:hover beim Darüberfahren mit der Maus an. */
+tbody tr:hover {
+  background: rgba(255, 255, 255, .012);
+}
+
+/* Legt die Darstellung von .table-empty fest. */
+.table-empty {
+  text-align: center;
+  color: #7f90a7;
+  height: 80px;
+}
+
+/* Gemeinsame Form für die Status-Badges der Protokollstufen. */
+.log-level {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+/* Legt die Darstellung von .log-level.info fest. */
+.log-level.info {
+  background: rgba(11, 119, 70, .3);
+  color: #18e68c;
+}
+
+/* Legt die Darstellung von .log-level.warning fest. */
+.log-level.warning {
+  background: rgba(125, 88, 0, .4);
+  color: #ffc114;
+}
+
+/* Kennzeichnet .log-level.error als Fehler oder gefährliche Aktion. */
+.log-level.error {
+  background: rgba(128, 31, 44, .42);
+  color: #ff5365;
+}
+
+/* Verteilt Ergebnisanzahl und Seitennavigation unter der Tabelle. */
+.logs-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 15px;
+  color: #a7b4c5;
+  font-size: 11px;
+}
+
+/* Legt die Darstellung von .page-btn fest. */
+.page-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid #23507d;
+  background: #081422;
+  color: #7fe8d7;
+}
+
+/* Kennzeichnet .page-btn.active im aktiven beziehungsweise geöffneten Zustand. */
+.page-btn.active {
+  border-color: #6d5dfc;
+  color: #7fe8d7;
+}
+
+/* Legt die Darstellung von .card-header fest. */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+/* Legt die Darstellung von .card-title h3 fest. */
+.card-title h3 {
+  font-size: 12px;
+  letter-spacing: .06em;
+}
+
+/* Legt die Darstellung von .card-title span fest. */
+.card-title span {
+  display: block;
+  color: #8394aa;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* Legt die Darstellung von .users-card td:last-child fest. */
+.users-card td:last-child {
+  white-space: nowrap;
+}
+
+/* Gemeinsame Pillenform für Rollen- und Statusanzeigen. */
+.role-pill, .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* Legt die Darstellung von .badge-muted fest. */
+.badge-muted {
+  background: #253247;
+  color: #b5c0cf;
+}
+
+/* Legt die Darstellung von .badge-success fest. */
+.badge-success {
+  background: rgba(14, 109, 65, .35);
+  color: #20df88;
+}
+
+/* Legt die Darstellung von .badge-cache fest. */
+.badge-cache {
+  background: rgba(132, 89, 0, .35);
+  color: #ffc14a;
+}
+
+/* === Switch-Details, Kennzahlen, Diagramme und Ports === */
+
+/* Ordnet die Bereiche einer Switch-Detailansicht untereinander an. */
+.detail-view {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Blendet Elemente zuverlässig aus, wenn JavaScript die Klasse setzt. */
+.detail-view.hidden, .hidden {
+  display: none!important;
+}
+
+/* Legt die Darstellung von .detail-header fest. */
+.detail-header {
+  margin: 4px 0 0;
+}
+
+/* Zeigt auf großen Bildschirmen fünf Kennzahlen nebeneinander. */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+/* Legt die Darstellung von .kpi-card fest. */
+.kpi-card {
+  background: linear-gradient(150deg, #101d30, #0b1727);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 16px;
+}
+
+/* Legt die Darstellung von .kpi-label fest. */
+.kpi-label {
+  display: block;
+  color: #8596aa;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+/* Legt die Darstellung von .kpi-value fest. */
+.kpi-value {
+  font-size: 17px;
+  font-weight: 800;
+  margin-top: 7px;
+}
+
+/* Reserviert eine feste Höhe für eine Diagrammkarte. */
+.graph-card {
+  height: 350px;
+}
+
+/* Bestimmt die Zeichenfläche des darin enthaltenen Chart.js-Diagramms. */
+.chart-container {
+  height: 280px;
+}
+
+/* Lässt Port-Kacheln automatisch in die nächste Zeile umbrechen. */
+.physical-ports-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Zeichnet eine kompakte visuelle Darstellung eines physischen Ports. */
+.port-visual-card {
+  width: 58px;
+  padding: 8px;
+  border-radius: 7px;
+  background: #081321;
+  border: 1px solid #25364a;
+  text-align: center;
+}
+
+/* Kennzeichnet .port-visual-card.online im Online-Zustand. */
+.port-visual-card.online {
+  border-color: rgba(24, 200, 121, .38);
+}
+
+/* Legt die Darstellung von .port-chip fest. */
+.port-chip {
+  height: 34px;
+  border-radius: 5px;
+  background: #040a12;
+  position: relative;
+}
+
+/* Zeigt die Status-LED eines Ports standardmäßig grau an. */
+.port-chip-led {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  top: 5px;
+  right: 5px;
+  background: #5f6d7e;
+}
+
+/* Färbt die Status-LED eines aktiven Ports grün. */
+.port-visual-card.online .port-chip-led {
+  background: #18d780;
+  box-shadow: 0 0 7px rgba(24, 215, 128, .6);
+}
+
+/* Legt die Darstellung von .port-chip-pins fest. */
+.port-chip-pins {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 7px;
+  height: 6px;
+  background: repeating-linear-gradient(90deg, #8c7130 0 2px, transparent 2px 5px);
+}
+
+/* Legt die Darstellung von .port-visual-label fest. */
+.port-visual-label {
+  display: block;
+  margin-top: 5px;
+  color: #9cabc0;
+  font-size: 10px;
+}
+
+/* Legt die Darstellung von .footer-status fest. */
+.footer-status {
+  text-align: right;
+  color: #718198;
+  font-size: 10px;
+  padding-bottom: 12px;
+}
+
+/* === Dialoge und Formulare === */
+
+/* Legt den abgedunkelten, zunächst unsichtbaren Dialoghintergrund über die Seite. */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(2, 7, 13, .78);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+}
+
+/* Zeigt einen Dialog, sobald JavaScript die Klasse „active“ ergänzt. */
+.modal.active {
+  display: flex;
+}
+
+/* Formatiert und begrenzt den scrollbaren Inhalt eines Dialogs. */
+.modal-content {
+  width: min(100%, 520px);
+  max-height: min(90vh, 760px);
+  overflow: auto;
+  position: relative;
+  border: 1px solid #2b3b51;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #111d30 0%, #0c1728 100%);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .52);
+  padding: 24px;
+}
+
+/* Legt die Darstellung von .modal-content.modal-lg fest. */
+.modal-content.modal-lg {
+  width: min(100%, 850px);
+}
+
+/* Legt die Darstellung von .user-modal-content fest. */
+.user-modal-content {
+  width: min(100%, 500px);
+}
+
+/* Legt die Darstellung von .modal-heading fest. */
+.modal-heading {
+  padding-right: 35px;
+  margin-bottom: 22px;
+}
+
+/* Legt die Darstellung von .modal-heading h3 fest. */
+.modal-heading h3 {
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+/* Legt die Darstellung von .modal-heading p fest. */
+.modal-heading p {
+  font-size: 11px;
+  color: #8999ae;
+  margin-top: 5px;
+}
+
+/* Positioniert die Schließen-Schaltfläche oben rechts im Dialog. */
+.modal-x {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #9cadc0;
+  font-size: 22px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+/* Passt .modal-x:hover beim Darüberfahren mit der Maus an. */
+.modal-x:hover {
+  background: #17253a;
+  color: #fff;
+}
+
+/* Ordnet Beschriftung und Eingabefeld eines Formularfelds untereinander an. */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+
+/* Legt die Darstellung von .form-group label fest. */
+.form-group label {
+  font-size: 11px;
+  color: #9cacc0;
+}
+
+/* Legt die Darstellung von .form-group input, .form-group select fest. */
+.form-group input, .form-group select {
+  width: 100%;
+  height: 42px;
+  background: #070f1b;
+}
+
+/* Legt die Darstellung von .form-group select fest. */
+.form-group select {
+  appearance: auto;
+}
+
+/* Legt die Darstellung von .select-wrap fest. */
+.select-wrap {
+  position: relative;
+}
+
+/* Zeigt zusammengehörige Formularfelder in zwei Spalten. */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Legt die Darstellung von .form-grid .small-field fest. */
+.form-grid .small-field {
+  max-width: 130px;
+}
+
+/* Richtet die Dialogaktionen rechts unter einer Trennlinie aus. */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(148, 163, 184, .1);
+}
+
+/* Legt die Darstellung von #passwordHint fest. */
+#passwordHint {
+  color: #6f8198;
+  font-weight: 400;
+}
+
+/* Formatiert technische JSON-Ausgaben als scrollbaren Codebereich. */
+#jsonViewer {
+  background: #050b13;
+  border: 1px solid #233247;
+  border-radius: 8px;
+  padding: 16px;
+  overflow: auto;
+  max-height: 55vh;
+  color: #b7e3ff;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* === Responsive Anpassungen des Grundlayouts === */
+
+/* Reduziert Karten und Kennzahlen auf mittelgroßen Bildschirmen. */
+@media (max-width:1180px) {
+  /* Legt die Darstellung von .switch-overview-grid fest. */
+  .switch-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Legt die Darstellung von .add-switch-tile fest. */
+  .add-switch-tile {
+    min-height: 190px;
+  }
+
+  /* Legt die Darstellung von .kpi-grid fest. */
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+}
+
+/* Stapelt Seitenleiste und Hauptinhalt auf Tablets untereinander. */
+@media (max-width:820px) {
+  /* Legt die Darstellung von .app-layout fest. */
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Legt die Darstellung von .sidebar fest. */
+  .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  /* Legt die Darstellung von .sidebar-footer fest. */
+  .sidebar-footer {
+    margin-top: 22px;
+  }
+
+  /* Legt die Darstellung von .main-content fest. */
+  .main-content {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+    padding: 22px 16px;
+  }
+
+  /* Legt die Darstellung von .switch-overview-grid fest. */
+  .switch-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Legt die Darstellung von .overview-switch-card fest. */
+  .overview-switch-card {
+    min-height: 290px;
+  }
+
+  /* Legt die Darstellung von .top-bar, .logs-head fest. */
+  .top-bar, .logs-head {
+    flex-direction: column;
+  }
+
+  /* Legt die Darstellung von .top-actions fest. */
+  .top-actions {
+    justify-content: flex-start;
+  }
+
+  /* Legt die Darstellung von .logs-toolbar fest. */
+  .logs-toolbar {
+    width: 100%;
+  }
+
+  /* Legt die Darstellung von .log-search-wrap fest. */
+  .log-search-wrap {
+    width: 100%;
+  }
+
+  /* Legt die Darstellung von .kpi-grid fest. */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+/* Optimiert Abstände, Schaltflächen und Raster für Smartphones. */
+@media (max-width:520px) {
+  /* Legt die Darstellung von .sidebar fest. */
+  .sidebar {
+    padding: 18px 14px;
+  }
+
+  /* Legt die Darstellung von .main-content fest. */
+  .main-content {
+    padding: 19px 12px 35px;
+  }
+
+  /* Legt die Darstellung von .top-bar h1 fest. */
+  .top-bar h1 {
+    font-size: 24px;
+  }
+
+  /* Legt die Darstellung von .top-actions fest. */
+  .top-actions {
+    width: 100%;
+  }
+
+  /* Legt die Darstellung von .top-actions .btn fest. */
+  .top-actions .btn {
+    flex: 1;
+  }
+
+  /* Legt die Darstellung von .switch-metrics fest. */
+  .switch-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Legt die Darstellung von .switch-metrics .metric:last-child fest. */
+  .switch-metrics .metric:last-child {
+    grid-column: 1/-1;
+  }
+
+  /* Legt die Darstellung von .form-grid fest. */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Legt die Darstellung von .form-grid .small-field fest. */
+  .form-grid .small-field {
+    max-width: none;
+  }
+
+  /* Legt die Darstellung von .modal fest. */
+  .modal {
+    padding: 10px;
+  }
+
+  /* Legt die Darstellung von .modal-content fest. */
+  .modal-content {
+    padding: 20px 16px;
+  }
+
+  /* Legt die Darstellung von .kpi-grid fest. */
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Legt die Darstellung von .card fest. */
+  .card {
+    padding: 16px;
+  }
+
+}
+
+/* === Anmeldung und Benutzerprofil === */
+
+/* Zentriert die Anmeldekarte und füllt mindestens die gesamte Fensterhöhe. */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 0%, rgba(109, 93, 252, .2), transparent 38%), radial-gradient(circle at 5% 100%, rgba(33, 212, 180, .09), transparent 28%), #070914;
+}
+
+/* Definiert Breite und Oberfläche der Anmeldekarte. */
+.auth-card {
+  width: min(100%, 430px);
+  border: 1px solid #303454;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #171a31, #0e1121);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .48);
+  padding: 30px;
+}
+
+/* Richtet Logo und Produktbezeichnung in der Anmeldung aus. */
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+/* Legt die Darstellung von .auth-brand h1 fest. */
+.auth-brand h1 {
+  font-size: 23px;
+  letter-spacing: -.035em;
+}
+
+/* Legt die Darstellung von .auth-brand span fest. */
+.auth-brand span {
+  display: block;
+  color: #9da6c5;
+  font-size: 10px;
+  letter-spacing: .05em;
+  margin-top: 4px;
+}
+
+/* Legt die Darstellung von .auth-brand .brand-version fest. */
+.auth-brand .brand-version {
+  display: inline-flex;
+  color: #b9b1ff;
+  font-size: 8px;
+}
+
+/* Legt die Darstellung von .auth-step h2 fest. */
+.auth-step h2 {
+  font-size: 24px;
+  margin: 3px 0 8px;
+}
+
+/* Legt die Darstellung von .auth-step>p fest. */
+.auth-step>p {
+  color: #91a0b5;
+  font-size: 12px;
+  line-height: 1.55;
+  margin-bottom: 22px;
+}
+
+/* Legt die Darstellung von .btn-wide fest. */
+.btn-wide {
+  width: 100%;
+}
+
+/* Legt die Darstellung von .auth-back fest. */
+.auth-back {
+  display: block;
+  text-align: center;
+  margin-top: 15px;
+  color: #91a0b5;
+  font-size: 12px;
+}
+
+/* Hebt den sechsstelligen Einmalcode deutlich hervor. */
+.otp-input {
+  text-align: center;
+  font-size: 22px!important;
+  letter-spacing: .28em;
+  font-weight: 800;
+}
+
+/* Gemeinsame Fläche für Erfolgs- und Fehlermeldungen. */
+.notice {
+  padding: 11px 13px;
+  border-radius: 7px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+/* Kennzeichnet eine Fehlermeldung rot. */
+.notice.error {
+  background: rgba(128, 31, 44, .26);
+  border: 1px solid rgba(255, 77, 95, .28);
+  color: #ff7b88;
+}
+
+/* Kennzeichnet eine Erfolgsmeldung grün. */
+.notice.success {
+  background: rgba(11, 119, 70, .24);
+  border: 1px solid rgba(23, 215, 131, .25);
+  color: #55eaa6;
+}
+
+/* Trennt die lokale Anmeldung optisch von den SSO-Anbietern. */
+.sso-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 14px;
+  color: #708399;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* Legt die Darstellung von .sso-divider:before, .sso-divider:after fest. */
+.sso-divider:before, .sso-divider:after {
+  content: "";
+  height: 1px;
+  background: #26374d;
+  flex: 1;
+}
+
+/* Legt die Darstellung von .sso-buttons fest. */
+.sso-buttons {
+  display: grid;
+  gap: 9px;
+}
+
+/* Formatiert eine Schaltfläche für einen externen Anmeldeanbieter. */
+.sso-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 9px 13px;
+  border: 1px solid #30445d;
+  border-radius: 8px;
+  background: #101d2e;
+  color: #dce7f4;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+  transition: border-color .15s, background .15s, transform .15s;
+}
+
+/* Passt .sso-button:hover beim Darüberfahren mit der Maus an. */
+.sso-button:hover {
+  border-color: #4b6c91;
+  background: #14263b;
+  transform: translateY(-1px);
+}
+
+/* Legt die Darstellung von .sso-mark fest. */
+.sso-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #263b55;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Legt die Darstellung von .sso-openid .sso-mark fest. */
+.sso-openid .sso-mark {
+  background: #f78c40;
+  color: #fff;
+}
+
+/* Legt die Darstellung von .worker-error fest. */
+.worker-error {
+  color: #ff7b88!important;
+}
+
+/* Zeigt Profil- und Sicherheitseinstellungen in zwei Spalten. */
+.profile-page .profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+/* Legt die Darstellung von .profile-page .profile-form fest. */
+.profile-page .profile-form {
+  margin-top: 20px;
+}
+
+/* Legt die Darstellung von .profile-page .card-title fest. */
+.profile-page .card-title {
+  margin-bottom: 18px;
+}
+
+/* Hebt die derzeit ausgewählte Profilkarte hervor. */
+.active-profile {
+  border-color: #6d5dfc;
+  background: #112642;
+}
+
+/* Fasst den aktuellen Zustand der Zwei-Faktor-Authentifizierung zusammen. */
+.twofa-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid #26364b;
+  border-radius: 8px;
+  background: #091423;
+}
+
+/* Legt die Darstellung von .twofa-status strong fest. */
+.twofa-status strong {
+  font-size: 13px;
+}
+
+/* Legt die Darstellung von .muted fest. */
+.muted {
+  color: #899aae;
+  font-size: 11px;
+  line-height: 1.55;
+  margin-top: 5px;
+}
+
+/* Ordnet QR-Code und Einrichtungshinweise nebeneinander an. */
+.twofa-setup-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 22px;
+  margin-top: 18px;
+}
+
+/* Hält den QR-Code auf einer kontrastreichen weißen Fläche lesbar. */
+.qr-box {
+  width: 200px;
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+/* Legt die Darstellung von .qr-box img, .qr-box canvas fest. */
+.qr-box img, .qr-box canvas {
+  max-width: 100%;
+}
+
+/* Stellt den manuellen 2FA-Schlüssel als kopierbaren Code dar. */
+.secret-code {
+  display: block;
+  margin: 12px 0;
+  padding: 11px;
+  border-radius: 7px;
+  background: #050b13;
+  border: 1px solid #26374c;
+  color: #7fe8d7;
+  word-break: break-all;
+}
+
+/* Legt die Darstellung von .uri-details fest. */
+.uri-details {
+  margin: 11px 0 16px;
+  color: #91a0b5;
+  font-size: 11px;
+}
+
+/* Formatiert die optional angezeigte TOTP-URI als vergrößerbares Textfeld. */
+.uri-details textarea {
+  width: 100%;
+  min-height: 75px;
+  margin-top: 8px;
+  border: 1px solid #293a50;
+  border-radius: 7px;
+  background: #070f1b;
+  color: #b9c7d7;
+  padding: 10px;
+  resize: vertical;
+}
+
+/* Legt die Darstellung von .profile-page #twoFactorActions fest. */
+.profile-page #twoFactorActions {
+  margin-top: 16px;
+}
+
+/* Legt die Darstellung von .role-pill fest. */
+.role-pill {
+  background: #213047;
+  color: #dbe5f1;
+}
+
+/* Legt die Darstellung von .form-group select option, .control-select option fest. */
+.form-group select option, .control-select option {
+  background: #091423;
+  color: #ecf2f8;
+}
+
+/* Stapelt Profil und 2FA-Einrichtung auf kleineren Bildschirmen. */
+@media (max-width:900px) {
+  /* Legt die Darstellung von .profile-page .profile-grid fest. */
+  .profile-page .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Legt die Darstellung von .twofa-setup-grid fest. */
+  .twofa-setup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Legt die Darstellung von .qr-box fest. */
+  .qr-box {
+    width: 190px;
+    min-height: 190px;
+  }
+
+}
+
+/* === Switch-Verwaltung === */
+
+/* Zeigt Verwaltungs-Karten auf großen Bildschirmen in zwei Spalten. */
+.switch-management-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Gliedert eine Verwaltungs-Karte in Gerätedaten, Werte und Aktionen. */
+.management-switch-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: linear-gradient(155deg, #101d30 0%, #0b1727 100%);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "main stats" "actions actions";
+  gap: 18px;
+}
+
+/* Passt .management-switch-card:hover beim Darüberfahren mit der Maus an. */
+.management-switch-card:hover {
+  border-color: #31465f;
+}
+
+/* Richtet Geräte-Icon und beschreibende Texte nebeneinander aus. */
+.management-main {
+  grid-area: main;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Legt die Darstellung von .management-icon fest. */
+.management-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #2b4160;
+  border-radius: 8px;
+  background: #17263a;
+  color: #9a8dff;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+/* Legt die Darstellung von .management-copy fest. */
+.management-copy {
+  min-width: 0;
+}
+
+/* Legt die Darstellung von .management-title-row fest. */
+.management-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Legt die Darstellung von .management-title-row h3 fest. */
+.management-title-row h3 {
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+/* Legt die Darstellung von .management-copy p fest. */
+.management-copy p {
+  margin-top: 5px;
+  color: #bdc8d6;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Legt die Darstellung von .management-copy small fest. */
+.management-copy small {
+  display: block;
+  margin-top: 7px;
+  color: #74869d;
+  font-size: 10px;
+}
+
+/* Zeigt drei kompakte Gerätestatistiken nebeneinander. */
+.management-stats {
+  grid-area: stats;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(70px, 1fr));
+  gap: 8px;
+  align-self: start;
+}
+
+/* Legt die Darstellung von .management-stats>span fest. */
+.management-stats>span {
+  min-width: 74px;
+  padding: 10px 12px;
+  border: 1px solid rgba(45, 62, 85, .65);
+  border-radius: 7px;
+  background: #091423;
+}
+
+/* Legt die Darstellung von .management-stats small fest. */
+.management-stats small {
+  display: block;
+  color: #8192a7;
+  font-size: 9px;
+  margin-bottom: 5px;
+}
+
+/* Legt die Darstellung von .management-stats strong fest. */
+.management-stats strong {
+  font-size: 13px;
+}
+
+/* Kennzeichnet .management-stats strong.good als erfolgreichen oder positiven Zustand. */
+.management-stats strong.good {
+  color: var(--green);
+}
+
+/* Ordnet die Verwaltungsaktionen rechts unterhalb der Gerätedaten an. */
+.management-actions {
+  grid-area: actions;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, .08);
+}
+
+/* Zentriert den Hinweis, wenn noch keine Switches vorhanden sind. */
+.empty-management {
+  grid-column: 1/-1;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Legt die Darstellung von .empty-management strong fest. */
+.empty-management strong {
+  font-size: 16px;
+}
+
+/* Legt die Darstellung von .empty-management span fest. */
+.empty-management span {
+  color: #8798ad;
+  font-size: 11px;
+  margin: 7px 0 18px;
+}
+
+/* Stellt Verwaltungs-Karten auf eine einspaltige Anordnung um. */
+@media (max-width:1050px) {
+  /* Legt die Darstellung von .switch-management-grid fest. */
+  .switch-management-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Legt die Darstellung von .management-switch-card fest. */
+  .management-switch-card {
+    grid-template-columns: 1fr;
+    grid-template-areas: "main" "stats" "actions";
+  }
+
+  /* Legt die Darstellung von .management-stats fest. */
+  .management-stats {
+    justify-self: stretch;
+  }
+
+}
+
+/* Stapelt Verwaltungsaktionen auf sehr schmalen Bildschirmen. */
+@media (max-width:620px) {
+  /* Legt die Darstellung von .management-stats fest. */
+  .management-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Legt die Darstellung von .management-actions fest. */
+  .management-actions {
+    flex-direction: column;
+  }
+
+  /* Legt die Darstellung von .management-actions .btn fest. */
+  .management-actions .btn {
+    width: 100%;
+  }
+
+}
+
+/* === Aktionsmenü einer Switch-Karte === */
+
+/* Dient als Bezugspunkt für das absolut positionierte Aufklappmenü. */
+.switch-card-menu-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Formatiert die Schaltfläche mit den drei Menüpunkten. */
+.kebab-btn {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #dce6f2;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background .15s ease, color .15s ease;
+}
+
+/* Passt .kebab-btn:hover, .switch-card-menu-wrap.open .kebab-btn beim Darüberfahren mit der Maus an. */
+.kebab-btn:hover, .switch-card-menu-wrap.open .kebab-btn {
+  background: #1a2a40;
+  color: #fff;
+}
+
+/* Positioniert das zunächst ausgeblendete Aktionsmenü unter der Schaltfläche. */
+.switch-card-menu {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  z-index: 40;
+  min-width: 172px;
+  padding: 6px;
+  border: 1px solid #2a3b52;
+  border-radius: 9px;
+  background: #0d1929;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, .42);
+  display: none;
+}
+
+/* Zeigt das Aktionsmenü, wenn JavaScript den Zustand „open“ setzt. */
+.switch-card-menu-wrap.open .switch-card-menu {
+  display: block;
+}
+
+/* Legt die Darstellung von .switch-card-menu button fest. */
+.switch-card-menu button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #d8e2ee;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Passt .switch-card-menu button:hover beim Darüberfahren mit der Maus an. */
+.switch-card-menu button:hover {
+  background: #17283d;
+  color: #fff;
+}
+
+/* Kennzeichnet löschende Menüaktionen mit der Warnfarbe. */
+.switch-card-menu button.danger {
+  color: #ff6571;
+}
+
+/* Passt .switch-card-menu button.danger:hover beim Darüberfahren mit der Maus an. */
+.switch-card-menu button.danger:hover {
+  background: rgba(255, 72, 88, .11);
+  color: #ff7a84;
+}
+
+/* === Monitoring, Switch-Aktionen und Rechteverwaltung === */
+
+/* Dämpft deaktivierte Ports optisch ab. */
+.port-visual-card.disabled {
+  opacity: .42;
+  filter: saturate(.25);
+}
+
+/* Legt die Darstellung von .port-actions fest. */
+.port-actions {
+  white-space: nowrap;
+}
+
+/* Legt die Darstellung von .port-actions .btn+.btn fest. */
+.port-actions .btn+.btn {
+  margin-left: 5px;
+}
+
+/* Zeigt die drei wichtigsten Monitoring-Kennzahlen nebeneinander. */
+.monitor-kpis {
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  margin-bottom: 18px;
+}
+
+/* Legt die Darstellung von .monitor-table-card fest. */
+.monitor-table-card {
+  margin-top: 18px;
+}
+
+/* Teilt die Rechteverwaltung in zwei gleich breite Bereiche. */
+.permission-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* Legt die Darstellung von .permission-list fest. */
+.permission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+/* Formatiert eine einzelne Rolle oder Berechtigungsgruppe. */
+.permission-row {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid #26374c;
+  border-radius: 8px;
+  background: #091423;
+}
+
+/* Legt die Darstellung von .permission-row strong fest. */
+.permission-row strong {
+  display: block;
+  font-size: 13px;
+}
+
+/* Legt die Darstellung von .permission-row small fest. */
+.permission-row small {
+  display: block;
+  margin-top: 4px;
+  color: #8192a7;
+  font-size: 10px;
+}
+
+/* Ordnet verfügbare Berechtigungen in zwei Spalten an. */
+.permission-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* Legt die Darstellung von .permission-columns h4 fest. */
+.permission-columns h4 {
+  margin: 4px 0 10px;
+  color: #9fb0c5;
+  font-size: 11px;
+  letter-spacing: .06em;
+}
+
+/* Legt die Darstellung von .permission-columns h4:not(:first-child) fest. */
+.permission-columns h4:not(:first-child) {
+  margin-top: 22px;
+}
+
+/* Zeigt auswählbare Rechte in einem zweispaltigen Raster. */
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* Formatiert eine einzelne auswählbare Berechtigung. */
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-height: 40px;
+  padding: 10px;
+  border: 1px solid #26374c;
+  border-radius: 7px;
+  background: #081321;
+  color: #d5dfeb;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* Passt .check-item:hover beim Darüberfahren mit der Maus an. */
+.check-item:hover {
+  border-color: #36506f;
+}
+
+/* Legt die Darstellung von .check-item input fest. */
+.check-item input {
+  accent-color: #6d5dfc;
+  margin-top: 1px;
+}
+
+/* Legt die Darstellung von .check-item span fest. */
+.check-item span {
+  line-height: 1.35;
+}
+
+/* Kennzeichnet geerbte und deshalb nicht direkt änderbare Rechte. */
+.check-item.inherited {
+  border-style: dashed;
+  background: #0b1828;
+  color: #9eb1c5;
+  cursor: default;
+}
+
+/* Legt die Darstellung von .check-item span small fest. */
+.check-item span small {
+  display: block;
+  margin-top: 3px;
+  color: #5eaef0;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* Stapelt Rechte und Monitoring-Werte auf kleineren Bildschirmen. */
+@media(max-width:900px) {
+  /* Legt die Darstellung von .permission-layout, .permission-columns fest. */
+  .permission-layout, .permission-columns {
+    grid-template-columns: 1fr;
+  }
+
+  /* Legt die Darstellung von .monitor-kpis fest. */
+  .monitor-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  /* Legt die Darstellung von .check-grid fest. */
+  .check-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+/* === Port-, LAG-, VLAN- und Alarmverwaltung === */
+
+/* Zeigt Konfigurationsbereiche auf großen Bildschirmen zweispaltig. */
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* Legt die Darstellung von .config-table fest. */
+.config-table {
+  min-width: 650px;
+}
+
+/* Verkleinert Eingabefelder für kompakte Tabellenzeilen. */
+.mini-select, .mini-input {
+  height: 31px;
+  border: 1px solid #2a3a50;
+  border-radius: 6px;
+  background: #071220;
+  color: #e8eef7;
+  padding: 0 8px;
+  font-size: 10px;
+}
+
+/* Legt die Darstellung von .mini-input fest. */
+.mini-input {
+  width: 76px;
+}
+
+/* Hält die Port- und Verbindungseinstellungen in einer Zeile zusammen. */
+.link-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 300px;
+}
+
+/* Legt die Darstellung von .link-controls .port-speed fest. */
+.link-controls .port-speed {
+  min-width: 105px;
+}
+
+/* Stellt zugewiesene Ports als kleine blaue Kennzeichen dar. */
+.port-tag {
+  display: inline-flex;
+  margin: 2px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: #16283e;
+  color: #77bfff;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* Formatiert eine anklickbare Einstellungszeile mit Kontrollfeld. */
+.setting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #26374c;
+  border-radius: 8px;
+  background: #091423;
+  color: #dce6f2;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Legt die Darstellung von .setting-toggle input, .vlan-force fest. */
+.setting-toggle input, .vlan-force {
+  accent-color: #6d5dfc;
+}
+
+/* Verteilt die Alarmkonfiguration auf drei Spalten. */
+.alert-layout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+/* Legt die Darstellung von .alert-fields fest. */
+.alert-fields {
+  margin-top: 16px;
+}
+
+/* Richtet die Aktionen der Alarmkonfiguration rechts aus. */
+.alert-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 16px 0 22px;
+}
+
+/* Legt die Darstellung von .alert-state-card small fest. */
+.alert-state-card small {
+  color: #8192a7;
+}
+
+/* Legt die Darstellung von .alert-state-card fest. */
+.alert-state-card {
+  margin-top: 4px;
+}
+
+/* Stapelt Konfigurations- und Alarmbereiche bei geringerer Breite. */
+@media(max-width:1120px) {
+  /* Legt die Darstellung von .config-grid, .alert-layout fest. */
+  .config-grid, .alert-layout {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+/* Lässt Verbindungsfelder und Alarmaktionen auf Smartphones umbrechen. */
+@media(max-width:620px) {
+  /* Legt die Darstellung von .link-controls fest. */
+  .link-controls {
+    min-width: 250px;
+    flex-wrap: wrap;
+  }
+
+  /* Legt die Darstellung von .alert-actions fest. */
+  .alert-actions {
+    flex-direction: column;
+  }
+
+  /* Legt die Darstellung von .alert-actions .btn fest. */
+  .alert-actions .btn {
+    width: 100%;
+  }
+
+}
+
+/* === OpenID-Connect-Administration === */
+
+/* Zeigt die OIDC-Einstellungen auf großen Bildschirmen in zwei Spalten. */
+.oidc-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+/* Legt die Darstellung von .oidc-layout .setting-toggle+.setting-toggle fest. */
+.oidc-layout .setting-toggle+.setting-toggle {
+  margin-top: 10px;
+}
+
+/* Hebt sicherheitskritische OIDC-Einstellungen rot hervor. */
+.danger-toggle {
+  border-color: rgba(255, 77, 95, .28);
+  color: #ff9aa4;
+}
+
+/* Unterscheidet schreibgeschützte OIDC-Werte von editierbaren Feldern. */
+.oidc-layout input[readonly] {
+  color: #8fb8df;
+  background: #091827;
+}
+
+/* Stapelt die OIDC-Einstellungen auf kleineren Bildschirmen. */
+@media(max-width:1120px) {
+  /* Legt die Darstellung von .oidc-layout fest. */
+  .oidc-layout {
+    grid-template-columns: 1fr;
+  }
+
+}

@@ -1,0 +1,38 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Runtime data
+data/*
+!data/.gitkeep
+database.sqlite
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+
+# Backups and exports
+*.swb
+*.bak
+*.backup
+*.zip
+*.tar
+*.tar.gz
+
+# Logs, caches and temporary files
+*.log
+cache/
+tmp/
+temp/
+.phpunit.result.cache
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# source design files for project
+design-source/*
+

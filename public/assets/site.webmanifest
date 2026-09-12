@@ -1,0 +1,13 @@
+{
+  "name": "Switchly",
+  "short_name": "Switchly",
+  "description": "Network Control Center for MikroTik SwOS switches",
+  "start_url": "../",
+  "display": "standalone",
+  "background_color": "#070914",
+  "theme_color": "#0d1020",
+  "icons": [
+    {"src": "switchly-mark-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "switchly-mark-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}

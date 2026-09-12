@@ -1,0 +1,24 @@
+[Unit]
+Description=Switchly background monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/switchly
+EnvironmentFile=/etc/switchly/switchly.env
+ExecStart=/usr/bin/php /var/www/switchly/bin/monitor.php
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/switchly
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

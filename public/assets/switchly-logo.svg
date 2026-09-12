@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-labelledby="title desc">
+  <title id="title">Switchly</title><desc id="desc">Switchly Network Control Center</desc>
+  <defs>
+    <linearGradient id="bg" x1="28" y1="18" x2="228" y2="238" gradientUnits="userSpaceOnUse"><stop stop-color="#9b86ff"/><stop offset=".5" stop-color="#6d5dfc"/><stop offset="1" stop-color="#21d4b4"/></linearGradient>
+    <linearGradient id="word" x1="190" y1="52" x2="610" y2="132" gradientUnits="userSpaceOnUse"><stop stop-color="#f8f7ff"/><stop offset="1" stop-color="#d8dcf2"/></linearGradient>
+  </defs>
+  <rect x="16" y="16" width="148" height="148" rx="36" fill="#090b18"/><rect x="22" y="22" width="136" height="136" rx="31" fill="url(#bg)"/>
+  <path d="M119 48H84c-17 0-31 12-31 26s14 26 31 26h14c17 0 31 12 31 26s-14 26-31 26H63" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="119" cy="48" r="8" fill="#fff"/><circle cx="63" cy="152" r="8" fill="#fff"/>
+  <text x="194" y="101" fill="url(#word)" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="68" font-weight="800" letter-spacing="-2">Switchly</text>
+  <text x="198" y="137" fill="#8f99b9" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" letter-spacing="3.4">NETWORK CONTROL CENTER</text>
+  <rect x="570" y="119" width="116" height="30" rx="15" fill="#6d5dfc" fill-opacity=".18" stroke="#8174ff" stroke-opacity=".5"/>
+  <text x="628" y="139" text-anchor="middle" fill="#b9b1ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700">v1.4.7 BETA</text>
+</svg>

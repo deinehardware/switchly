@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Switchly</title>
+  <desc id="desc">Switchly Netzwerk-Bildmarke in Violett und Türkis</desc>
+  <defs>
+    <linearGradient id="bg" x1="28" y1="18" x2="228" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9b86ff"/><stop offset=".5" stop-color="#6d5dfc"/><stop offset="1" stop-color="#21d4b4"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="48" y1="32" x2="174" y2="218" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="62" fill="#090b18"/>
+  <rect x="10" y="10" width="236" height="236" rx="54" fill="url(#bg)"/>
+  <path d="M31 72C55 29 95 12 145 12h47c30 0 54 24 54 54v17C207 57 164 47 119 52 79 56 51 63 31 72Z" fill="url(#shine)"/>
+  <path d="M177 59h-61c-29 0-52 19-52 43s23 43 52 43h24c29 0 52 19 52 43s-23 43-52 43H79" fill="none" stroke="#fff" stroke-width="23" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="177" cy="59" r="14" fill="#fff"/><circle cx="79" cy="231" r="14" fill="#fff"/>
+  <circle cx="215" cy="42" r="5" fill="#bff8ee" opacity=".8"/><circle cx="42" cy="205" r="5" fill="#ddd7ff" opacity=".75"/>
+</svg>
