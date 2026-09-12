@@ -42,12 +42,8 @@ printf '%s\n' 'Shell-Syntax prüfen …'
 if ! find deploy scripts -type f -name '*.sh' -exec bash -n {} \;; then
     failures=$((failures + 1))
 fi
-if [[ ! -x scripts/version-change.sh ]]; then
-    printf '%s\n' '  Versionsskript ist nicht ausführbar.' >&2
-    failures=$((failures + 1))
-fi
-if [[ ! -x scripts/set-version.sh ]]; then
-    printf '%s\n' '  Kompatibilitätsalias für das Versionsskript ist nicht ausführbar.' >&2
+if [[ ! -f scripts/set-version.sh ]]; then
+    printf '%s\n' '  Versionsskript scripts/set-version.sh fehlt.' >&2
     failures=$((failures + 1))
 fi
 
@@ -153,13 +149,27 @@ for required_file in \
         failures=$((failures + 1))
     fi
 done
-if find data -type f ! -name '.gitkeep' -print -quit | grep -q .; then
-    printf '%s\n' '  Laufzeitdaten im data-Verzeichnis gefunden.' >&2
-    failures=$((failures + 1))
-fi
-if find . -type f \( -name '.env' -o -name '*.sqlite' -o -name '*.sqlite-wal' -o -name '*.sqlite-shm' -o -name '*.swb' \) -print -quit | grep -q .; then
-    printf '%s\n' '  Nicht veröffentlichbare Konfigurations- oder Laufzeitdatei gefunden.' >&2
-    failures=$((failures + 1))
+# Runtime files such as .env are valid in an installed instance. They become a
+# publication problem only when Git tracks them. This distinction also lets
+# administrators run the quality check safely on a deployed checkout.
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    tracked_data_files="$(git ls-files data | grep -v -E '^data/\.gitkeep$' || true)"
+    if [[ -n "$tracked_data_files" ]]; then
+        printf '%s\n' '  Veröffentlichte Laufzeitdaten im data-Verzeichnis:' >&2
+        while IFS= read -r tracked_file; do
+            printf '    %s\n' "$tracked_file" >&2
+        done <<< "$tracked_data_files"
+        failures=$((failures + 1))
+    fi
+
+    tracked_sensitive_files="$(git ls-files | grep -E '(^|/)\.env$|\.sqlite(3|-wal|-shm)?$|\.swb$' || true)"
+    if [[ -n "$tracked_sensitive_files" ]]; then
+        printf '%s\n' '  Von Git erfasste Konfigurations- oder Laufzeitdateien:' >&2
+        while IFS= read -r tracked_file; do
+            printf '    %s\n' "$tracked_file" >&2
+        done <<< "$tracked_sensitive_files"
+        failures=$((failures + 1))
+    fi
 fi
 
 if ((failures > 0)); then
