@@ -7,7 +7,7 @@
 
 <div align="center">
   <h1>Vollständige Dokumentation</h1>
-  <p><strong>Projektversion v1.4.7 Beta · Stand 7. September 2026</strong></p>
+  <p><strong>Projektversion v1.4.8 Beta · Stand 7. September 2026</strong></p>
 
   <p>
     <a href="../README.md">Projektübersicht</a> ·
@@ -559,9 +559,9 @@ Beispiel eines generischen Webhook-Payloads:
   "source": "Switchly",
   "application": {
     "name": "Switchly",
-    "version": "1.4.7",
+    "version": "1.4.8",
     "channel": "Beta",
-    "display_version": "v1.4.7 Beta"
+    "display_version": "v1.4.8 Beta"
   },
   "event": "switch.down",
   "timestamp": "2026-08-21T12:00:00+00:00",
@@ -936,7 +936,7 @@ Beiträge und weitergegebene Änderungen unterliegen den Bedingungen der GPLv3. 
 
 <div align="center">
   <h1>Complete documentation</h1>
-  <p><strong>Project version v1.4.7 Beta · Last updated 7 September 2026</strong></p>
+  <p><strong>Project version v1.4.8 Beta · Last updated 7 September 2026</strong></p>
 
   <p>
     <a href="../README.md#english">Project overview</a> ·
@@ -1559,9 +1559,9 @@ Example generic webhook payload:
   "source": "Switchly",
   "application": {
     "name": "Switchly",
-    "version": "1.4.7",
+    "version": "1.4.8",
     "channel": "Beta",
-    "display_version": "v1.4.7 Beta"
+    "display_version": "v1.4.8 Beta"
   },
   "event": "switch.down",
   "timestamp": "2026-08-21T12:00:00+00:00",

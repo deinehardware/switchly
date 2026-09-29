@@ -21,9 +21,12 @@ try {
         // The stored secret may be replaced, but is never returned to the browser.
         $settings['webhook_secret_configured'] = trim((string)($settings['webhook_secret'] ?? '')) !== '';
         $settings['smtp_password_configured'] = trim((string)($settings['smtp_password'] ?? '')) !== '';
+        $settings['gmail_client_secret_configured'] = trim((string)($settings['gmail_client_secret'] ?? '')) !== '';
+        $settings['gmail_oauth_connected'] = trim((string)($settings['gmail_refresh_token'] ?? '')) !== '';
         unset($settings['webhook_secret']);
         unset($settings['smtp_password']);
-        $states = Database::getConnection()->query("SELECT a.*,s.name,s.host FROM alert_states a JOIN switches s ON s.id=a.switch_id ORDER BY s.name")->fetchAll();
+        unset($settings['gmail_client_secret'], $settings['gmail_refresh_token']);
+        $states = Database::getConnection()->query("SELECT a.*,s.id AS switch_id,s.name,s.host,s.alert_monitoring_enabled FROM switches s LEFT JOIN alert_states a ON a.switch_id=s.id ORDER BY s.name")->fetchAll();
         $monitorEnabled = filter_var((string)(getenv('SWITCHLY_MONITOR_ENABLED') ?: '1'), FILTER_VALIDATE_BOOLEAN);
         $monitorInterval = max(15, (int)(getenv('SWITCHLY_MONITOR_INTERVAL') ?: 60));
         $monitorJob = Database::getConnection()->query("SELECT * FROM background_job_status WHERE job_name='switch_monitor'")->fetch() ?: null;
@@ -54,7 +57,13 @@ try {
         'smtp_username' => (string)($_POST['smtp_username'] ?? ''),
         'smtp_password' => trim((string)($_POST['smtp_password'] ?? '')) !== '' ? (string)$_POST['smtp_password'] : (string)($current['smtp_password'] ?? ''),
         'smtp_from' => (string)($_POST['smtp_from'] ?? ''),
+        'gmail_oauth_enabled' => filter_var($_POST['gmail_oauth_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
+        'gmail_client_id' => (string)($_POST['gmail_client_id'] ?? ''),
+        'gmail_client_secret' => trim((string)($_POST['gmail_client_secret'] ?? '')) !== '' ? (string)$_POST['gmail_client_secret'] : (string)($current['gmail_client_secret'] ?? ''),
+        'gmail_sender' => (string)($_POST['gmail_sender'] ?? ''),
     ];
+    // Save validates that an enabled master alert has at least one usable
+    // channel, preventing a misleading enabled-but-undeliverable state.
     AlertService::save($values);
     $saved = AlertService::settings();
     // Aktion „test“: prüft die aktuell übermittelten Einstellungen.
@@ -65,7 +74,14 @@ try {
             $detail = trim((string)($result['error'] ?? ''));
             Api::respond(['error' => $detail !== '' ? $detail : 'Kein Alert-Kanal konnte den Test zustellen. Bitte SMTP/Webhook prüfen.'], 502);
         }
+        // A successful test proves that the repaired channel is usable. Reset
+        // only failed unsent incidents so the next worker run retries at once.
+        $rearmed = AlertService::rearmPendingFailures();
+        if ($rearmed > 0) Logger::write('INFO', 'ALERT_DELIVERY_REARMED', $rearmed . ' ausstehende Alert-Zustände wurden erneut aktiviert.');
     } else {
+        // Saving changed transport settings should not leave an old failed
+        // attempt blocked by the previous cooldown window.
+        AlertService::rearmPendingFailures();
         Logger::write('INFO', 'ALERT_SETTINGS_CHANGED', 'Alert-Einstellungen wurden geändert.');
     }
     Api::respond(['success' => true]);

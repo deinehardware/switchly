@@ -11,6 +11,20 @@
 
 Diese Datei dokumentiert die offiziellen Veröffentlichungen von Switchly.
 
+## [1.4.8-beta] – 2026-09-29
+
+##Added
+
+- Gmail-Konten können nun alternativ über OAuth 2.0 und die Gmail API angebunden werden.
+- Einzelne Switches können vom Alert-Monitoring ausgeschlossen werden.
+- Die Sprache der Benutzeroberfläche kann zwischen Deutsch und Englisch umgeschaltet werden.
+- Unterstützung für den MikroTik CRS354-48G-4S+2Q+ hinzugefügt.
+
+##Fixed
+
+- Der E-Mail-Verbindungstest zeigt nun die konkrete SMTP-Fehlermeldung an.
+- Nach einem erfolgreichen Alert-Test oder einer Änderung der Alert-Konfiguration werden zuvor fehlgeschlagene und noch nicht versendete Ausfallalarme automatisch reaktiviert. Dadurch können sie bereits beim nächsten Worker-Durchlauf erneut zugestellt werden.
+
 ## [1.4.7-beta] – 2026-09-12
 
 **Erste Beta-Veröffentlichung auf GitHub**
@@ -69,6 +83,20 @@ Diese Datei dokumentiert die offiziellen Veröffentlichungen von Switchly.
 </div>
 
 This file documents official Switchly releases.
+
+## [1.4.8-beta] – 2026-09-29
+
+### Added
+
+- Gmail accounts can now be connected using OAuth 2.0 and the Gmail API as an alternative to password-based SMTP authentication.
+- Individual switches can now be excluded from alert monitoring.
+- The user interface language can now be switched between German and English.
+- Added support for the MikroTik CRS354-48G-4S+2Q+.
+
+### Fixed
+
+- The email connection test now displays the specific SMTP error message.
+- After a successful alert test or a change to the alert configuration, previously failed and unsent outage alerts are automatically reactivated. They can therefore be delivered again during the next worker run.
 
 ## [1.4.7-beta] – 2026-09-12
 

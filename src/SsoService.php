@@ -532,7 +532,6 @@ final class SsoService
         $response = curl_exec($ch);
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
-        curl_close($ch);
         if ($response === false) throw new RuntimeException('SSO-Verbindung fehlgeschlagen: ' . ($error !== '' ? $error : 'unbekannter Netzwerkfehler'));
         $data = json_decode((string)$response, true);
         if ($status < 200 || $status >= 300) {

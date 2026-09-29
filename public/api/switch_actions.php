@@ -114,13 +114,13 @@ try {
         $name = trim((string)($_POST['name'] ?? ''));
         $members = json_decode((string)($_POST['members'] ?? '[]'), true);
         if (!is_array($members)) throw new RuntimeException('Ungültige Portauswahl.');
-        $mask = 0;
+        $validatedMembers = [];
         foreach ($members as $member) {
             $member = (int)$member;
-            if ($member < 1 || $member > 32) throw new RuntimeException('Ungültiger VLAN-Port.');
-            $mask |= 1 << ($member - 1);
+            if ($member < 1 || $member > 64) throw new RuntimeException('Ungültiger VLAN-Port.');
+            $validatedMembers[$member] = $member;
         }
-        $client->saveVlan($index, $vlanId, $name, $mask);
+        $client->saveVlan($index, $vlanId, $name, array_values($validatedMembers));
         Logger::switchEvent('WARNING', $index === null ? 'VLAN_CREATED' : 'VLAN_UPDATED', 'VLAN ' . $vlanId . ($index === null ? ' angelegt.' : ' bearbeitet.'), $id);
     // Aktion „vlan_delete“: löscht einen VLAN-Eintrag.
     } elseif ($action === 'vlan_delete') {

@@ -12,6 +12,7 @@ require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/TOTP.php';
 require_once __DIR__ . '/../src/Logger.php';
 require_once __DIR__ . '/../src/AppInfo.php';
+require_once __DIR__ . '/../src/Locale.php';
 
 Auth::requireLogin();
 
@@ -20,6 +21,12 @@ $db = Database::getConnection();
 $stmt = $db->prepare('SELECT * FROM users WHERE username = :username');
 $stmt->execute(['username' => $username]);
 $user = $stmt->fetch();
+$language = Locale::current(is_array($user) ? $user : null);
+$assetVersion = rawurlencode(AppInfo::VERSION . '-' . (string)max(
+    (int)@filemtime(__DIR__ . '/assets/style.css'),
+    (int)@filemtime(__DIR__ . '/assets/i18n.js'),
+    (int)@filemtime(__DIR__ . '/assets/profile.js')
+));
 
 // Beendet veraltete Sitzungen, deren Benutzerkonto nicht mehr existiert.
 if (!$user) {
@@ -60,30 +67,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
 }
 ?>
 <!doctype html>
-<html lang="de">
+<html lang="<?= htmlspecialchars($language, ENT_QUOTES) ?>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0d1020">
   <meta name="application-name" content="<?= AppInfo::NAME ?>">
   <title>Profil &amp; 2FA – <?= AppInfo::NAME ?> · <?= AppInfo::DISPLAY_VERSION ?></title>
-  <link rel="icon" href="assets/favicon.ico?v=1.4.7" sizes="any">
-  <link rel="icon" type="image/svg+xml" href="assets/switchly.svg?v=1.4.7">
-  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1.4.7">
-  <link rel="manifest" href="assets/site.webmanifest?v=1.4.7">
-  <link rel="stylesheet" href="assets/style.css?v=1.4.7">
+  <link rel="icon" href="assets/favicon.ico?v=<?=$assetVersion?>" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="assets/switchly.svg?v=<?=$assetVersion?>">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=<?=$assetVersion?>">
+  <link rel="manifest" href="assets/site.webmanifest?v=<?=$assetVersion?>">
+  <link rel="stylesheet" href="assets/style.css?v=<?=$assetVersion?>">
 </head>
 <body
   class="profile-page"
   data-app-version="<?= AppInfo::DISPLAY_VERSION ?>"
   data-csrf="<?= htmlspecialchars(Auth::csrfToken(), ENT_QUOTES) ?>"
+  data-language="<?= htmlspecialchars($language, ENT_QUOTES) ?>"
 >
   <div class="app-layout">
     <!-- Kompakte Navigation zurück zur Anwendung und zur Abmeldung. -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="logo-box">
-          <img class="brand-mark" src="assets/switchly-mark.svg?v=1.4.7" alt="Switchly" width="44" height="44">
+          <img class="brand-mark" src="assets/switchly-mark.svg?v=<?=$assetVersion?>" alt="Switchly" width="44" height="44">
         </div>
         <div class="sidebar-title">
           <h2><?= AppInfo::NAME ?></h2>
@@ -178,7 +186,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'passw
     </main>
   </div>
 
-  <script src="assets/vendor/qrcodejs/qrcode.min.js?v=1.0.0"></script>
-  <script src="assets/profile.js?v=1.4.7"></script>
+  <script charset="UTF-8" src="assets/vendor/qrcodejs/qrcode.min.js?v=1.0.0"></script>
+  <script charset="UTF-8" src="assets/i18n.js?v=<?=$assetVersion?>"></script>
+  <script charset="UTF-8" src="assets/profile.js?v=<?=$assetVersion?>"></script>
 </body>
 </html>

@@ -288,6 +288,130 @@ a {
   margin-top: auto;
 }
 
+/* Integriert den kompakten Spracheinstieg in den Sidebar-Footer. */
+.language-settings-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 9px;
+  margin: 0 0 12px;
+  padding: 9px 10px;
+  border: 1px solid #26384d;
+  border-radius: 7px;
+  background: #101c2c;
+  color: #c8d4e3;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+}
+
+.language-settings-btn:hover {
+  border-color: #6657ed;
+  background: #15233a;
+}
+
+.language-settings-icon {
+  color: #6d5dfc;
+  font-size: 15px;
+}
+
+.language-settings-btn strong {
+  margin-left: auto;
+  color: #8fa3b9;
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.language-settings-arrow {
+  color: #65768a;
+  font-size: 16px;
+}
+
+.language-modal-content {
+  max-width: 600px;
+}
+
+.language-setting-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 0;
+  border-top: 1px solid #25354a;
+}
+
+.language-setting-row > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.language-setting-row strong {
+  color: #edf4fc;
+  font-size: 13px;
+}
+
+.language-setting-row small {
+  color: #8292a7;
+  font-size: 11px;
+}
+
+.language-switch {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid #29384b;
+  border-radius: 7px;
+  background: #0b1422;
+}
+
+.language-switch button {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #8fa0b5;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 5px 8px;
+}
+
+.language-switch button.active, .language-switch button:hover {
+  background: #6757ef;
+  color: #fff;
+}
+
+.language-switch-large button {
+  min-width: 82px;
+  padding: 9px 13px;
+  font-size: 11px;
+}
+
+.language-default-row {
+  position: relative;
+}
+
+.language-save-status {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  min-height: 14px;
+  color: #61dca3 !important;
+}
+
+@media (max-width: 620px) {
+  .language-setting-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .language-switch-large {
+    width: 100%;
+  }
+  .language-switch-large button {
+    flex: 1;
+  }
+}
+
 /* Legt die Darstellung von .sidebar-divider fest. */
 .sidebar-divider {
   height: 1px;
@@ -1808,6 +1932,79 @@ tbody tr:hover {
   letter-spacing: -.02em;
 }
 
+/* Zeigt die gerätespezifische Alarmfreigabe als kompakten Statusschalter. */
+.alert-monitoring-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 6px;
+  border: 1px solid rgba(109, 93, 252, .35);
+  border-radius: 999px;
+  background: rgba(109, 93, 252, .12);
+  color: #c9c2ff;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Verstärkt die Schalterkontur beim Überfahren. */
+.alert-monitoring-pill:hover {
+  border-color: rgba(109, 93, 252, .7);
+}
+
+/* Hält das native Kontrollfeld bedienbar, aber visuell verborgen. */
+.alert-monitoring-pill input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* Kennzeichnet die Tastaturfokussierung des Alarmschalters. */
+.alert-monitoring-pill:focus-within {
+  outline: 2px solid rgba(109, 93, 252, .5);
+  outline-offset: 2px;
+}
+
+/* Zeichnet die kompakte Schalterspur. */
+.alert-toggle-track {
+  position: relative;
+  width: 24px;
+  height: 13px;
+  flex: 0 0 24px;
+  border-radius: 999px;
+  background: #6d5dfc;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1);
+}
+
+.alert-toggle-track > span {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .16s ease;
+}
+
+.alert-monitoring-pill.is-off {
+  border-color: #33445a;
+  background: rgba(51, 68, 90, .2);
+  color: #8292a7;
+}
+
+.alert-monitoring-pill.is-off .alert-toggle-track {
+  background: #405168;
+}
+
+.alert-monitoring-pill.is-off .alert-toggle-track > span {
+  transform: translateX(-11px);
+}
+
 /* Legt die Darstellung von .management-copy p fest. */
 .management-copy p {
   margin-top: 5px;
@@ -2235,6 +2432,18 @@ tbody tr:hover {
   font-weight: 800;
 }
 
+.vlan-actions-cell {
+  min-width: 190px;
+  white-space: nowrap;
+}
+
+.vlan-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
 /* Formatiert eine anklickbare Einstellungszeile mit Kontrollfeld. */
 .setting-toggle {
   display: flex;
@@ -2254,11 +2463,30 @@ tbody tr:hover {
   accent-color: #6d5dfc;
 }
 
-/* Verteilt die Alarmkonfiguration auf drei Spalten. */
+/* Ordnet die kompakten Alarmkarten über der breiten E-Mail-Konfiguration an. */
 .alert-layout {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "general webhook"
+    "mail mail";
   gap: 18px;
+}
+
+/* Positioniert die allgemeinen Alarmeinstellungen im linken Kartenbereich. */
+.alert-general-card {
+  grid-area: general;
+}
+
+/* Gibt der umfangreichen SMTP- und OAuth-Konfiguration die gesamte Zeilenbreite. */
+.alert-mail-card {
+  grid-area: mail;
+  min-width: 0;
+}
+
+/* Positioniert die Webhook-Einstellungen neben den allgemeinen Optionen. */
+.alert-webhook-card {
+  grid-area: webhook;
 }
 
 /* Legt die Darstellung von .alert-fields fest. */
@@ -2272,6 +2500,87 @@ tbody tr:hover {
   justify-content: flex-end;
   gap: 10px;
   margin: 16px 0 22px;
+}
+
+/* Groups Gmail OAuth credentials and connection state inside the mail card. */
+.gmail-oauth-box {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Aligns the OAuth explanation and its enable switch without squeezing either side. */
+.gmail-oauth-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Stacks the short OAuth heading and its explanation. */
+.gmail-oauth-header > div {
+  display: grid;
+  gap: 4px;
+}
+
+/* Uses the subdued interface color for the OAuth explanation. */
+.gmail-oauth-header small {
+  color: var(--muted);
+}
+
+/* Prevents the OAuth enable switch from shrinking or drifting out of alignment. */
+.gmail-oauth-header .setting-toggle {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+/* Displays the callback address as a labeled, full-width value. */
+.gmail-oauth-callback {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Styles the callback label consistently with other form labels. */
+.gmail-oauth-callback > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* Keeps long OAuth callback addresses inside their card. */
+.gmail-oauth-callback code {
+  display: block;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(4, 12, 24, .35);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* Keeps authorization status and connect action together on the right edge. */
+.gmail-oauth-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Prevents the Google connect caption from breaking across multiple lines. */
+.gmail-oauth-actions .btn {
+  white-space: nowrap;
 }
 
 /* Legt die Darstellung von .alert-state-card small fest. */
@@ -2291,10 +2600,32 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
+  /* Stacks every alert card in its natural document order on smaller screens. */
+  .alert-layout {
+    grid-template-areas: "general" "mail" "webhook";
+  }
+
 }
 
 /* Lässt Verbindungsfelder und Alarmaktionen auf Smartphones umbrechen. */
 @media(max-width:620px) {
+  /* Stacks the OAuth title and switch so neither is clipped on phones. */
+  .gmail-oauth-header {
+    flex-direction: column;
+  }
+
+  /* Places the callback label above its long address on narrow screens. */
+  .gmail-oauth-callback {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  /* Distributes OAuth status and connect action across the available phone width. */
+  .gmail-oauth-actions {
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
   /* Legt die Darstellung von .link-controls fest. */
   .link-controls {
     min-width: 250px;

@@ -7,7 +7,7 @@
 
 # Switchly
 
-[![Version](https://img.shields.io/badge/version-v1.4.7_Beta-6d5dfc?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v1.4.8_Beta-6d5dfc?style=for-the-badge)](CHANGELOG.md)
 [![PHP](https://img.shields.io/badge/PHP-8.5-777bb4?style=for-the-badge&logo=php&logoColor=white)](Dockerfile)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?style=for-the-badge&logo=docker&logoColor=white)](#docker-compose-empfohlen)
 [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-64748b?style=for-the-badge&logo=gnu&logoColor=white)](LICENSE)
@@ -15,7 +15,7 @@
 Switchly ist ein selbst gehostetes Control Panel für das Monitoring und die Verwaltung von MikroTik-Switches mit SwitchOS. Eine kompakte Lösung für kleine und mittlere Switch-Umgebungen.
 
 > [!IMPORTANT]
-> **v1.4.7 Beta** ist eine Vorabversion. Reboot, Restore sowie VLAN-, LAG- und Portänderungen wirken unmittelbar auf das Gerät. Erstelle vorher ein Backup und teste Änderungen zuerst an einem Test-Switch.
+> **v1.4.8 Beta** ist eine Vorabversion. Reboot, Restore sowie VLAN-, LAG- und Portänderungen wirken unmittelbar auf das Gerät. Erstelle vorher ein Backup und teste Änderungen zuerst an einem Test-Switch.
 
 ## Funktionen
 
@@ -69,7 +69,7 @@ docker compose logs switchly
 
 ```bash
 cp .env.example .env
-docker build --pull -t switchly:1.4.7-beta .
+docker build --pull -t switchly:1.4.8-beta .
 docker volume create switchly_data
 docker run -d \
   --name switchly \
@@ -83,7 +83,7 @@ docker run -d \
   -e SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite \
   -p 8080:8080 \
   -v switchly_data:/var/lib/switchly \
-  switchly:1.4.7-beta
+  switchly:1.4.8-beta
 ```
 
 Bei der Docker CLI wird der Host-Port direkt mit `-p` festgelegt. `SWITCHLY_HTTP_PORT` gilt nur für Docker Compose.
@@ -293,17 +293,17 @@ Beim ersten Start erzeugt Switchly automatisch die SQLite-Datenbank und das Admi
 
 ## Konfiguration
 
-| Variable | Standard | Zweck |
-| --- | --- | --- |
-| `SWITCHLY_HTTP_PORT` | `8080` | Host-Port bei Docker Compose |
-| `TZ` | `Europe/Berlin` | Zeitzone für PHP und Logs |
-| `SWITCHLY_DB_PATH` | Docker-intern gesetzt | Pfad der SQLite-Datenbank |
-| `SWITCHLY_ADMIN_USER` | `admin` | Benutzer einer neuen Installation |
-| `SWITCHLY_ADMIN_PASSWORD` | leer | optionales Initialpasswort; leer erzeugt ein sicheres Zufallspasswort |
-| `SWITCHLY_BASE_URL` | automatische Erkennung | öffentliche Basis-URL |
-| `SWITCHLY_MONITOR_ENABLED` | `1` | Hintergrund-Monitoring aktivieren |
-| `SWITCHLY_MONITOR_INTERVAL` | `60` | Worker-Intervall in Sekunden |
-| `SWITCHLY_LOG_RETENTION_DAYS` | `90` | Aufbewahrung der Logs |
+| Variable                      | Standard               | Zweck                                                                 |     |
+| ----------------------------- | ---------------------- | --------------------------------------------------------------------- | --- |
+| `SWITCHLY_HTTP_PORT`          | `8080`                 | Host-Port bei Docker Compose                                          |     |
+| `TZ`                          | `Europe/Berlin`        | Zeitzone für PHP und Logs                                             |     |
+| `SWITCHLY_DB_PATH`            | Docker-intern gesetzt  | Pfad der SQLite-Datenbank                                             |     |
+| `SWITCHLY_ADMIN_USER`         | `admin`                | Benutzer einer neuen Installation                                     |     |
+| `SWITCHLY_ADMIN_PASSWORD`     | leer                   | optionales Initialpasswort; leer erzeugt ein sicheres Zufallspasswort |     |
+| `SWITCHLY_BASE_URL`           | automatische Erkennung | öffentliche Basis-URL                                                 |     |
+| `SWITCHLY_MONITOR_ENABLED`    | `1`                    | Hintergrund-Monitoring aktivieren                                     |     |
+| `SWITCHLY_MONITOR_INTERVAL`   | `60`                   | Worker-Intervall in Sekunden                                          |     |
+| `SWITCHLY_LOG_RETENTION_DAYS` | `90`                   | Aufbewahrung der Logs                                                 |     |
 
 SMTP wird nach der Anmeldung unter **Alerts → E-Mail & SMTP** konfiguriert.
 
@@ -348,6 +348,15 @@ docker compose up -d
 ```
 
 Nach jedem Update Login, Health-Endpunkt, Live-Aktualisierung und Worker prüfen. Der vollständige Ablauf steht unter [Betrieb und Updates](docs/operations.md).
+
+## Welche MikroTik-Switches sind kompatibel?
+
+|     Kompatible Geräte      |
+| :------------------------: |
+| Mikrotik CSS-326-24G-2S+RM |
+| Mikrotik CRS326-24S+2Q+RM  |
+| Mikrotik CRS317-1G-16S+RM  |
+| Mikrotik CRS354-48G-4S+2Q+ |
 
 ## FAQ
 
@@ -439,7 +448,7 @@ Switchly wird unter der [GNU General Public License Version 3](LICENSE) veröffe
 
 # Switchly
 
-[![Version](https://img.shields.io/badge/version-v1.4.7_Beta-6d5dfc?style=for-the-badge)](CHANGELOG.md#english)
+[![Version](https://img.shields.io/badge/version-v1.4.8_Beta-6d5dfc?style=for-the-badge)](CHANGELOG.md#english)
 [![PHP](https://img.shields.io/badge/PHP-8.5-777bb4?style=for-the-badge&logo=php&logoColor=white)](Dockerfile)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?style=for-the-badge&logo=docker&logoColor=white)](#en-docker-compose-recommended)
 [![License](https://img.shields.io/badge/License-GPL--3.0-64748b?style=for-the-badge&logo=gnu&logoColor=white)](LICENSE)
@@ -447,7 +456,7 @@ Switchly wird unter der [GNU General Public License Version 3](LICENSE) veröffe
 Switchly is a self-hosted network control center for monitoring and managing MikroTik switches with SwitchOS. A responsive web interface, SQLite and an independent background worker form a compact solution for small and medium switch environments.
 
 > [!IMPORTANT]
-> **v1.4.7 Beta** is a pre-release version. Reboots, restores, and changes to VLANs, LAGs, or ports take effect immediately on the device. Create a backup first and test changes on a non-production switch.
+> **v1.4.8 Beta** is a pre-release version. Reboots, restores, and changes to VLANs, LAGs, or ports take effect immediately on the device. Create a backup first and test changes on a non-production switch.
 
 <a id="en-functions"></a>
 
@@ -509,7 +518,7 @@ docker compose logs switchly
 
 ```bash
 cp .env.example .env
-docker build --pull -t switchly:1.4.7-beta .
+docker build --pull -t switchly:1.4.8-beta .
 docker volume create switchly_data
 docker run -d \
   --name switchly \
@@ -523,7 +532,7 @@ docker run -d \
   -e SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite \
   -p 8080:8080 \
   -v switchly_data:/var/lib/switchly \
-  switchly:1.4.7-beta
+  switchly:1.4.8-beta
 ```
 
 With Docker CLI, set the host port directly using `-p`. `SWITCHLY_HTTP_PORT` applies only to Docker Compose.
@@ -814,6 +823,14 @@ docker compose up -d
 Check login, health endpoint, live update and worker after each update. The complete process is under [Operation and updates](docs/operations.md#english).
 
 <a id="en-faq"></a>
+## Which MikroTik switches are compatible?
+
+|     Compatible Devices     |
+| :------------------------: |
+| Mikrotik CSS-326-24G-2S+RM |
+| Mikrotik CRS326-24S+2Q+RM  |
+| Mikrotik CRS317-1G-16S+RM  |
+| Mikrotik CRS354-48G-4S+2Q+ |
 
 ## FAQ
 

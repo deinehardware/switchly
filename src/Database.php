@@ -81,6 +81,9 @@ final class Database
         if (!in_array('email_verification_expires_at', $names, true)) {
             $db->exec('ALTER TABLE users ADD COLUMN email_verification_expires_at DATETIME DEFAULT NULL');
         }
+        if (!in_array('language', $names, true)) {
+            $db->exec('ALTER TABLE users ADD COLUMN language TEXT DEFAULT NULL');
+        }
         $db->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL');
 
         $db->exec("CREATE TABLE IF NOT EXISTS sso_identities (
@@ -158,8 +161,20 @@ final class Database
             port INTEGER NOT NULL DEFAULT 80,
             username TEXT NOT NULL DEFAULT 'admin',
             password TEXT NOT NULL DEFAULT '',
+            alert_monitoring_enabled INTEGER NOT NULL DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )");
+        $switchColumns = array_column($db->query('PRAGMA table_info(switches)')->fetchAll(), 'name');
+        if (!in_array('alert_monitoring_enabled', $switchColumns, true)) {
+            $db->exec('ALTER TABLE switches ADD COLUMN alert_monitoring_enabled INTEGER NOT NULL DEFAULT 1');
+        }
+
+        $db->exec("CREATE TABLE IF NOT EXISTS app_settings (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            default_language TEXT NOT NULL DEFAULT 'de',
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )");
+        $db->exec("INSERT OR IGNORE INTO app_settings (id, default_language) VALUES (1, 'de')");
 
         $db->exec("CREATE TABLE IF NOT EXISTS switch_cache (
             switch_id TEXT PRIMARY KEY,
@@ -277,6 +292,11 @@ final class Database
             smtp_username TEXT NOT NULL DEFAULT '',
             smtp_password TEXT NOT NULL DEFAULT '',
             smtp_from TEXT NOT NULL DEFAULT '',
+            gmail_oauth_enabled INTEGER NOT NULL DEFAULT 0,
+            gmail_client_id TEXT NOT NULL DEFAULT '',
+            gmail_client_secret TEXT NOT NULL DEFAULT '',
+            gmail_refresh_token TEXT NOT NULL DEFAULT '',
+            gmail_sender TEXT NOT NULL DEFAULT '',
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )");
         $db->exec("INSERT OR IGNORE INTO alert_settings (id) VALUES (1)");
@@ -288,6 +308,12 @@ final class Database
             'smtp_username' => "TEXT NOT NULL DEFAULT ''",
             'smtp_password' => "TEXT NOT NULL DEFAULT ''",
             'smtp_from' => "TEXT NOT NULL DEFAULT ''",
+            // Gmail OAuth values are added idempotently for existing databases.
+            'gmail_oauth_enabled' => 'INTEGER NOT NULL DEFAULT 0',
+            'gmail_client_id' => "TEXT NOT NULL DEFAULT ''",
+            'gmail_client_secret' => "TEXT NOT NULL DEFAULT ''",
+            'gmail_refresh_token' => "TEXT NOT NULL DEFAULT ''",
+            'gmail_sender' => "TEXT NOT NULL DEFAULT ''",
         ] as $column => $definition) {
             if (!in_array($column, $alertColumns, true)) {
                 $db->exec("ALTER TABLE alert_settings ADD COLUMN {$column} {$definition}");

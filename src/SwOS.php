@@ -59,7 +59,6 @@ final class SwOS
         $curlError = curl_error($ch);
         $curlErrno = curl_errno($ch);
         $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
         if ($response === false) {
             if ($allowDisconnect && in_array($curlErrno, [CURLE_GOT_NOTHING, CURLE_RECV_ERROR], true)) return '';
@@ -112,16 +111,58 @@ final class SwOS
         return $default;
     }
 
-    /** Ermittelt einen booleschen Portzustand aus Bitmaske oder Arraydarstellung. */
+    /** Ermittelt einen booleschen Portzustand aus skalarer oder mehrteiliger Bitmaske. */
     private function maskEnabled(array $data, array $keys, int $index, bool $default = false): bool
     {
         foreach ($keys as $key) {
             if (!array_key_exists($key, $data)) continue;
             $value = $data[$key];
-            if (is_array($value)) return !empty($value[$index]);
+            if (is_array($value)) {
+                // CRS354 and other switches with more than 32 logical ports
+                // expose masks as high-word first arrays, for example
+                // [ports 33-60, ports 1-32]. sfpr is the exception: it is a
+                // genuine per-port boolean array.
+                if ($key === 'sfpr') return !empty($value[$index]);
+                $wordIndex = count($value) - 1 - intdiv($index, 32);
+                if ($wordIndex < 0 || !array_key_exists($wordIndex, $value)) return $default;
+                return (($this->parseNumber($value[$wordIndex]) & (1 << ($index % 32))) !== 0);
+            }
             return (($this->parseNumber($value) & (1 << $index)) !== 0);
         }
         return $default;
+    }
+
+    /** Converts a scalar or high-word-first SwOS mask into one-based ports. */
+    private function maskToPorts(mixed $mask, int $portCount): array
+    {
+        $ports = [];
+        for ($index = 0; $index < $portCount; $index++) {
+            if (is_array($mask)) {
+                $wordIndex = count($mask) - 1 - intdiv($index, 32);
+                $enabled = $wordIndex >= 0
+                    && array_key_exists($wordIndex, $mask)
+                    && (($this->parseNumber($mask[$wordIndex]) & (1 << ($index % 32))) !== 0);
+            } else {
+                $enabled = (($this->parseNumber($mask) & (1 << $index)) !== 0);
+            }
+            if ($enabled) $ports[] = $index + 1;
+        }
+        return $ports;
+    }
+
+    /** Builds the scalar or high-word-first mask representation used by SwOS. */
+    private function portsToMask(array $ports, int $portCount): int|array
+    {
+        $wordCount = max(1, (int)ceil($portCount / 32));
+        $words = array_fill(0, $wordCount, 0);
+        foreach ($ports as $port) {
+            $port = (int)$port;
+            if ($port < 1 || $port > $portCount) throw new RuntimeException('Ungültiger VLAN-Port ' . $port . '.');
+            $index = $port - 1;
+            $wordIndex = $wordCount - 1 - intdiv($index, 32);
+            $words[$wordIndex] |= 1 << ($index % 32);
+        }
+        return $wordCount === 1 ? $words[0] : $words;
     }
 
     /** Dekodiert den kompakten Linkstatus in Geschwindigkeit und Duplexmodus. */
@@ -195,7 +236,15 @@ final class SwOS
                 if ($safeKey === 'nm') {
                     $encoded = $this->serializePayload((string)$value);
                 } elseif ($safeKey === 'mbr') {
-                    $encoded = '0x' . str_pad(dechex($this->parseNumber($value) & 0xffffffff), 8, '0', STR_PAD_LEFT);
+                    if (is_array($value)) {
+                        $encodedWords = array_map(
+                            fn(mixed $word): string => '0x' . str_pad(dechex($this->parseNumber($word) & 0xffffffff), 8, '0', STR_PAD_LEFT),
+                            $value
+                        );
+                        $encoded = '[' . implode(',', $encodedWords) . ']';
+                    } else {
+                        $encoded = '0x' . str_pad(dechex($this->parseNumber($value) & 0xffffffff), 8, '0', STR_PAD_LEFT);
+                    }
                 } elseif ($safeKey === 'vid') {
                     $encoded = '0x' . str_pad(dechex($this->parseNumber($value) & 0xffff), 4, '0', STR_PAD_LEFT);
                 } elseif (in_array($safeKey, ['piso', 'lrn', 'mrr', 'igmp'], true)) {
@@ -227,6 +276,19 @@ final class SwOS
         return substr($raw, 0, $field['offset']) . implode(',', $tokens) . substr($raw, $field['offset'] + $field['length']);
     }
 
+    /** Builds a POST object from selected fields without read-only neighbors. */
+    private function selectedFieldsPayload(string $raw, array $keys): string
+    {
+        $parts = [];
+        foreach ($keys as $key) {
+            if (!preg_match('/\\b' . preg_quote($key, '/') . '\\s*:\\s*(\\[.*?\\]|0x[0-9a-fA-F]+|\\d+)/s', $raw, $match)) {
+                throw new RuntimeException('SwOS-Feld ' . $key . ' wurde nicht gefunden.');
+            }
+            $parts[] = $key . ':' . $match[1];
+        }
+        return '{' . implode(',', $parts) . '}';
+    }
+
     /** Ändert einen einzelnen Index innerhalb eines SwOS-Arrayfelds. */
     private function updateArrayValue(string $raw, array $keys, int $index, string $token): string
     {
@@ -242,6 +304,18 @@ final class SwOS
     private function updateMaskValue(string $raw, array $keys, int $index, bool $enabled): string
     {
         foreach ($keys as $key) {
+            $field = $this->arrayField($raw, [$key]);
+            if ($field !== null) {
+                $wordIndex = count($field['tokens']) - 1 - intdiv($index, 32);
+                if ($wordIndex < 0 || !array_key_exists($wordIndex, $field['tokens'])) {
+                    throw new RuntimeException('Port wurde in der SwOS-Bitmaske ' . $key . ' nicht gefunden.');
+                }
+                $mask = $this->parseNumber($field['tokens'][$wordIndex]);
+                $bit = 1 << ($index % 32);
+                $mask = $enabled ? ($mask | $bit) : ($mask & ~$bit);
+                $field['tokens'][$wordIndex] = '0x' . str_pad(dechex($mask & 0xffffffff), 8, '0', STR_PAD_LEFT);
+                return $this->replaceArrayField($raw, $field, $field['tokens']);
+            }
             if (!preg_match('/\\b' . preg_quote($key, '/') . '\\s*:\\s*(0x[0-9a-fA-F]+|\\d+)/', $raw, $m, PREG_OFFSET_CAPTURE)) continue;
             $mask = $this->parseNumber($m[1][0]);
             $bit = 1 << $index;
@@ -251,8 +325,7 @@ final class SwOS
                 : (string)$mask;
             return substr($raw, 0, $m[1][1]) . $replacement . substr($raw, $m[1][1] + strlen($m[1][0]));
         }
-        // A few SwOS Lite builds use an array instead of a bit mask.
-        return $this->updateArrayValue($raw, $keys, $index, $enabled ? '1' : '0');
+        throw new RuntimeException('SwOS-Bitmaske ' . implode('/', $keys) . ' wurde nicht gefunden.');
     }
 
     /** Lädt einen SwOS-Endpunkt und weist unerwartet leere Antworten zurück. */
@@ -293,26 +366,46 @@ final class SwOS
         return implode(' ', $parts);
     }
 
+    /** Reads the first usable voltage field and normalizes mV/dV values to volts. */
+    private function systemVoltage(array $data): ?float
+    {
+        foreach (['p1v', 'p2v', 'psu1v', 'psu2v', 'volt', 'voltage', 'vlt', 'vin', 'psuv', 'pwrv'] as $key) {
+            if (!array_key_exists($key, $data)) continue;
+            $values = is_array($data[$key]) ? $data[$key] : [$data[$key]];
+            foreach ($values as $value) {
+                $raw = $this->parseNumber($value);
+                if ($raw <= 0) continue;
+                if ($raw > 1000) return round($raw / 1000, 1);
+                if ($raw > 100) return round($raw / 10, 1);
+                return round((float)$raw, 1);
+            }
+        }
+        return null;
+    }
+
     /** @return array<string, mixed> Normalized system information. */
     public function getSystemInfo(): array
     {
         $data = $this->parsePayload($this->request('/sys.b'));
-        $rawUptime = $this->parseNumber($data['upt'] ?? $data['uptime'] ?? 0);
-
-        $voltage = null;
-        if (isset($data['p1v'])) {
-            $voltage = round($this->parseNumber($data['p1v']) / 1000, 1);
-        } elseif (isset($data['volt'])) {
-            $rawVoltage = $this->parseNumber($data['volt']);
-            $voltage = $rawVoltage > 100 ? round($rawVoltage / 10, 1) : $rawVoltage;
+        // Large CRS3xx models may expose live health fields only through the
+        // read-only status variant. Keep sys.b authoritative for configuration
+        // and merge only the additional live values when the endpoint exists.
+        if ($this->systemVoltage($data) === null) {
+            try {
+                $liveData = $this->parsePayload($this->request('/!sys.b'));
+                if ($liveData !== []) $data = array_replace($data, $liveData);
+            } catch (Throwable) {
+                // Older SwOS versions do not provide !sys.b.
+            }
         }
+        $rawUptime = $this->parseNumber($data['upt'] ?? $data['uptime'] ?? 0);
 
         return [
             'model' => $this->hexToString((string)($data['brd'] ?? $data['model'] ?? 'Unbekannt')),
             'identity' => $this->hexToString((string)($data['id'] ?? '')),
             'version' => $this->hexToString((string)($data['ver'] ?? '')),
             'temperature' => isset($data['temp']) ? $this->parseNumber($data['temp']) : null,
-            'voltage' => $voltage,
+            'voltage' => $this->systemVoltage($data),
             'uptime' => $this->uptimeToText($rawUptime),
             'mac' => (string)($data['mac'] ?? ''),
         ];
@@ -325,7 +418,6 @@ final class SwOS
         $stats = $this->parsePayload($this->request('/stats.b'));
         $count = isset($link['nm']) && is_array($link['nm']) ? count($link['nm']) : 0;
         $ports = [];
-        $enabledMask = $this->parseNumber($link['en'] ?? 0xffffffff);
 
         for ($i = 0; $i < $count; $i++) {
             $name = $this->hexToString((string)($link['nm'][$i] ?? ''));
@@ -333,17 +425,12 @@ final class SwOS
             $isQsfpLane = str_starts_with(strtoupper($name), 'QSFP');
             $isFiber = $isQsfpLane || $this->maskEnabled($link, ['sfpr'], $i, false);
             $speedOptions = $isQsfpLane
-                ? [['value' => 3, 'label' => '10 Gbit/s']]
+                ? [['value' => 0, 'label' => '10 Gbit/s']]
                 : ($isFiber
-                    ? [['value' => 2, 'label' => '1 Gbit/s'], ['value' => 3, 'label' => '10 Gbit/s']]
-                    : [['value' => 0, 'label' => '10 Mbit/s'], ['value' => 1, 'label' => '100 Mbit/s'], ['value' => 2, 'label' => '1 Gbit/s'], ['value' => 3, 'label' => '10 Gbit/s']]);
+                    ? [['value' => 2, 'label' => '1 Gbit/s'], ['value' => 0, 'label' => '10 Gbit/s']]
+                    : [['value' => 0, 'label' => '10 Mbit/s'], ['value' => 1, 'label' => '100 Mbit/s'], ['value' => 2, 'label' => '1 Gbit/s']]);
 
-            $up = false;
-            if (isset($link['lnk'])) {
-                $up = is_array($link['lnk'])
-                    ? !empty($link['lnk'][$i])
-                    : (($this->parseNumber($link['lnk']) & (1 << $i)) !== 0);
-            }
+            $up = $this->maskEnabled($link, ['lnk'], $i, false);
             $actualSpeedCode = $this->indexedValue($link, ['spd', 'rate', 'lnksp'], $i, null);
             $autoNegotiation = $this->maskEnabled($link, ['an', 'autoneg', 'auto'], $i, true);
             $speedCode = $this->indexedValue($link, ['spdc', 'sp', 'speedc'], $i, null);
@@ -352,7 +439,7 @@ final class SwOS
                 'port' => $i + 1,
                 'name' => $name,
                 'link' => $up,
-                'enabled' => (($enabledMask & (1 << $i)) !== 0),
+                'enabled' => $this->maskEnabled($link, ['en'], $i, true),
                 'speed' => $this->decodeSpeedCode($actualSpeedCode, $up),
                 'duplex' => $up ? ($this->maskEnabled($link, ['dpx', 'duplex'], $i, true) ? 'Full' : 'Half') : '—',
                 'auto_negotiation' => $autoNegotiation,
@@ -401,19 +488,16 @@ final class SwOS
     /** Updates the enabled-port bitmask in `/link.b`. */
     public function setPortEnabled(int $port, bool $enabled): void
     {
-        if ($port < 1 || $port > 32) throw new RuntimeException('Portnummer außerhalb des gültigen Bereichs.');
-        $link = $this->parsePayload($this->request('/link.b'));
-        $mask = $this->parseNumber($link['en'] ?? 0xffffffff);
-        $bit = 1 << ($port - 1);
-        $mask = $enabled ? ($mask | $bit) : ($mask & ~$bit);
-        $payload = '{en:0x' . str_pad(dechex($mask & 0xffffffff), 8, '0', STR_PAD_LEFT) . '}';
-        $this->request('/link.b', 'POST', $payload, ['Content-Type: application/x-javascript'], 10);
+        if ($port < 1 || $port > 64) throw new RuntimeException('Portnummer außerhalb des gültigen Bereichs.');
+        $raw = $this->request('/link.b');
+        $raw = $this->updateMaskValue($raw, ['en'], $port - 1, $enabled);
+        $this->request('/link.b', 'POST', $raw, ['Content-Type: text/plain'], 15);
     }
 
     /** Rewrites one hex-encoded port name while retaining unknown payload fields. */
     public function renamePort(int $port, string $name): void
     {
-        if ($port < 1 || $port > 32) throw new RuntimeException('Portnummer außerhalb des gültigen Bereichs.');
+        if ($port < 1 || $port > 64) throw new RuntimeException('Portnummer außerhalb des gültigen Bereichs.');
         $name = trim($name);
         if ($name === '' || strlen($name) > 32) throw new RuntimeException('Der Portname muss 1 bis 32 Bytes lang sein.');
         $raw = $this->request('/link.b');
@@ -435,7 +519,7 @@ final class SwOS
     /** Changes auto-negotiation and, when disabled, the configured speed code. */
     public function setPortLinkSettings(int $port, bool $autoNegotiation, ?int $speedCode): void
     {
-        if ($port < 1 || $port > 32) throw new RuntimeException('Portnummer außerhalb des gültigen Bereichs.');
+        if ($port < 1 || $port > 64) throw new RuntimeException('Portnummer außerhalb des gültigen Bereichs.');
         if (!$autoNegotiation && ($speedCode === null || $speedCode < 0 || $speedCode > 15)) {
             throw new RuntimeException('Bitte eine gültige Portgeschwindigkeit auswählen.');
         }
@@ -453,7 +537,7 @@ final class SwOS
     {
         [, $data] = $this->endpointPayload('/lacp.b');
         $count = 0;
-        foreach (['mode', 'sgrp'] as $key) if (isset($data[$key]) && is_array($data[$key])) $count = max($count, count($data[$key]));
+        foreach (['mode', 'sgrp', 'grp'] as $key) if (isset($data[$key]) && is_array($data[$key])) $count = max($count, count($data[$key]));
         $rows = [];
         $labels = [0 => 'Passive LACP', 1 => 'Active LACP', 2 => 'Static'];
         for ($i = 0; $i < $count; $i++) {
@@ -463,8 +547,8 @@ final class SwOS
                 'mode' => $mode,
                 'mode_label' => $labels[$mode] ?? ('Modus ' . $mode),
                 'group' => $this->parseNumber($this->indexedValue($data, ['sgrp'], $i, 0)),
-                'trunk' => $this->parseNumber($this->indexedValue($data, ['trunk', 'trk'], $i, 0)),
-                'partner' => $this->hexToString((string)$this->indexedValue($data, ['partner', 'prt'], $i, '')),
+                'trunk' => $this->parseNumber($this->indexedValue($data, ['trunk', 'trk', 'grp'], $i, 0)),
+                'partner' => $this->hexToString((string)$this->indexedValue($data, ['partner', 'prt', 'mac'], $i, '')),
             ];
         }
         return $rows;
@@ -477,7 +561,7 @@ final class SwOS
         $raw = $this->request('/lacp.b');
         $raw = $this->updateArrayValue($raw, ['mode'], $port - 1, '0x' . str_pad(dechex($mode), 2, '0', STR_PAD_LEFT));
         $raw = $this->updateArrayValue($raw, ['sgrp'], $port - 1, '0x' . str_pad(dechex($group), 2, '0', STR_PAD_LEFT));
-        $this->request('/lacp.b', 'POST', $raw, ['Content-Type: text/plain'], 15);
+        $this->request('/lacp.b', 'POST', $this->selectedFieldsPayload($raw, ['mode', 'sgrp']), ['Content-Type: text/plain'], 15);
     }
 
     /**
@@ -512,7 +596,9 @@ final class SwOS
                 'index' => $i,
                 'id' => $this->parseNumber($row['vid'] ?? 0),
                 'name' => $this->hexToString((string)($row['nm'] ?? '')),
-                'members_mask' => $this->parseNumber($row['mbr'] ?? 0),
+                // A list remains exact in JSON and JavaScript even when the
+                // device uses more than the browser's 32-bit bitwise range.
+                'members' => $this->maskToPorts($row['mbr'] ?? 0, $portCount),
             ];
         }
         return ['ports' => $ports, 'vlans' => $vlans, 'port_count' => $portCount];
@@ -527,17 +613,21 @@ final class SwOS
         $raw = $this->updateArrayValue($raw, ['vlan'], $port - 1, '0x' . str_pad(dechex($mode), 2, '0', STR_PAD_LEFT));
         $raw = $this->updateArrayValue($raw, ['vlni'], $port - 1, '0x' . str_pad(dechex($receive), 2, '0', STR_PAD_LEFT));
         $raw = $this->updateMaskValue($raw, ['fvid'], $port - 1, $force);
-        $this->request('/fwd.b', 'POST', $raw, ['Content-Type: text/plain'], 15);
+        $this->request('/fwd.b', 'POST', $this->selectedFieldsPayload($raw, ['vlan', 'vlni', 'dvid', 'fvid']), ['Content-Type: text/plain'], 15);
     }
 
     /**
      * Creates or replaces one VLAN table row and verifies the written VLAN ID.
      * A null index appends a new row; existing rows use a zero-based index.
      */
-    public function saveVlan(?int $index, int $vlanId, string $name, int $membersMask): void
+    public function saveVlan(?int $index, int $vlanId, string $name, array $members): void
     {
         if ($vlanId < 1 || $vlanId > 4094) throw new RuntimeException('VLAN-ID muss zwischen 1 und 4094 liegen.');
         if (strlen($name) > 32) throw new RuntimeException('VLAN-Name darf höchstens 32 Bytes lang sein.');
+        $linkData = $this->parsePayload($this->request('/link.b'));
+        $portCount = isset($linkData['nm']) && is_array($linkData['nm']) ? count($linkData['nm']) : 32;
+        if ($portCount < 1 || $portCount > 64) throw new RuntimeException('Die Portanzahl des Switches ist ungültig.');
+        $membersMask = $this->portsToMask($members, $portCount);
         [, $rows] = $this->endpointPayload('/vlan.b', true);
         if (!array_is_list($rows)) throw new RuntimeException('vlan.b enthält nicht das erwartete CRS3xx-Tabellenformat.');
         $rowCount = count($rows);
@@ -551,7 +641,7 @@ final class SwOS
             throw new RuntimeException('VLAN-Eintrag wurde nicht gefunden.');
         }
         $rows[$index]['nm'] = bin2hex($name);
-        $rows[$index]['mbr'] = $membersMask & 0xffffffff;
+        $rows[$index]['mbr'] = $membersMask;
         $rows[$index]['vid'] = $vlanId;
         $this->request('/vlan.b', 'POST', $this->serializeVlanTable($rows), ['Content-Type: text/plain'], 20);
 

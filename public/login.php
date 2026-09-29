@@ -10,11 +10,17 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/SsoService.php';
 require_once __DIR__ . '/../src/AppInfo.php';
+require_once __DIR__ . '/../src/Locale.php';
 
 Auth::startSession();
 $error = '';
 $twoFaStep = !empty($_SESSION['pending_2fa']);
 $providers = SsoService::availableProviders();
+$language = Locale::defaultLanguage();
+$assetVersion = rawurlencode(AppInfo::VERSION . '-' . (string)max(
+    (int)@filemtime(__DIR__ . '/assets/style.css'),
+    (int)@filemtime(__DIR__ . '/assets/i18n.js')
+));
 // Übernimmt einen einmaligen Fehler aus dem OIDC-Rücksprung und entfernt ihn aus der Sitzung.
 if (!empty($_SESSION['sso_error'])) {
     $error = (string)$_SESSION['sso_error'];
@@ -51,23 +57,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!doctype html>
-<html lang="de">
+<html lang="<?= htmlspecialchars($language, ENT_QUOTES) ?>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0d1020">
   <meta name="application-name" content="<?=AppInfo::NAME?>">
   <title>Anmelden – <?=AppInfo::NAME?> · <?=AppInfo::DISPLAY_VERSION?></title>
-  <link rel="icon" href="assets/favicon.ico?v=1.4.7" sizes="any">
-  <link rel="icon" type="image/svg+xml" href="assets/switchly.svg?v=1.4.7">
-  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1.4.7">
-  <link rel="manifest" href="assets/site.webmanifest?v=1.4.7">
-  <link rel="stylesheet" href="assets/style.css?v=1.4.7">
+  <link rel="icon" href="assets/favicon.ico?v=<?=$assetVersion?>" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="assets/switchly.svg?v=<?=$assetVersion?>">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=<?=$assetVersion?>">
+  <link rel="manifest" href="assets/site.webmanifest?v=<?=$assetVersion?>">
+  <link rel="stylesheet" href="assets/style.css?v=<?=$assetVersion?>">
 </head>
-<body class="auth-page">
+<body class="auth-page" data-language="<?= htmlspecialchars($language, ENT_QUOTES) ?>">
 <div class="auth-card">
   <!-- Produktkennung und mögliche neutrale Anmeldefehler. -->
-  <div class="auth-brand"><div class="logo-box"><img class="brand-mark" src="assets/switchly-mark.svg?v=1.4.7" alt="Switchly" width="44" height="44"></div><div><h1><?=AppInfo::NAME?></h1><span>Network Control Center</span><small class="brand-version"><?=AppInfo::DISPLAY_VERSION?></small></div></div>
+  <div class="auth-brand"><div class="logo-box"><img class="brand-mark" src="assets/switchly-mark.svg?v=<?=$assetVersion?>" alt="Switchly" width="44" height="44"></div><div><h1><?=AppInfo::NAME?></h1><span>Network Control Center</span><small class="brand-version"><?=AppInfo::DISPLAY_VERSION?></small></div></div>
   <?php if ($error): ?><div class="notice error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
   <!-- Je nach Sitzungszustand erscheint der zweite Faktor oder die primäre Anmeldung. -->
   <?php if ($twoFaStep): ?>
@@ -105,5 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   <?php endif; ?>
 </div>
+<script charset="UTF-8" src="assets/i18n.js?v=<?=$assetVersion?>"></script>
 </body>
 </html>

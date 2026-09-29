@@ -113,6 +113,23 @@ if grep -Fq "unset(\$settings['smtp_password']);" public/api/alerts.php; then :;
     printf '%s\n' '  SMTP-Passwort wird von der Alert-API nicht redigiert.' >&2
     failures=$((failures + 1))
 fi
+# Alert regression guards: an enabled configuration needs a channel, switch
+# toggles must re-arm state, and failed deliveries must remain diagnosable.
+grep -q 'mindestens ein Benachrichtigungskanal' src/AlertService.php || failures=$((failures + 1))
+grep -q "DELETE FROM alert_states WHERE switch_id" public/api/manage_switches.php || failures=$((failures + 1))
+grep -q 'ALERT_DELIVERY_FAILED' src/AlertService.php || failures=$((failures + 1))
+# SMTP failures must reach the test endpoint without exposing credentials.
+grep -q 'public static function lastError' src/EmailService.php || failures=$((failures + 1))
+grep -q 'smtpResponseSuffix' src/EmailService.php || failures=$((failures + 1))
+grep -q "strtolower(\$host) === 'smtp.gmail.com'" src/EmailService.php || failures=$((failures + 1))
+# Gmail OAuth must use state validation, offline tokens and redacted secrets.
+grep -q 'hash_equals' public/gmail_oauth.php || failures=$((failures + 1))
+grep -q "'access_type' => 'offline'" public/gmail_oauth.php || failures=$((failures + 1))
+grep -q "unset(\$settings\['gmail_client_secret'\], \$settings\['gmail_refresh_token'\])" public/api/alerts.php || failures=$((failures + 1))
+grep -q 'https://www.googleapis.com/auth/gmail.send' src/GmailOAuthService.php || failures=$((failures + 1))
+# A successful channel test must release cooldowns from earlier failed sends.
+grep -q 'rearmPendingFailures' src/AlertService.php || failures=$((failures + 1))
+grep -q 'ALERT_DELIVERY_REARMED' public/api/alerts.php || failures=$((failures + 1))
 printf '%s  %s\n' \
     'e0059220c10bff95fdb7f5b77b9bfffba68b3ccf4eab4f7398ee7aef3cffca2b' \
     'public/assets/vendor/chart.js/chart.umd.min.js' \

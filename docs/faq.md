@@ -205,7 +205,7 @@ Viele SwOS-Geräte stellen ihre Management-Endpunkte nur über HTTP Digest berei
 <details>
 <summary><strong>Welche MikroTik-Switches sind kompatibel?</strong></summary>
 
-Die Implementierung zielt insbesondere auf CRS3xx/CSS3xx mit SwitchOS 2.x. Da Endpunkte und Felder firmwareabhängig sind, ist eine pauschale Zusage für jedes Modell nicht möglich. Lesezugriffe und anschließend Schreibaktionen immer mit der konkreten Firmware testen.
+Die Implementierung zielt insbesondere auf Mikrotik CSS-326-24G-2S+RM | Mikrotik CRS326-24S+2Q+RM | Mikrotik CRS317-1G-16S+RM | Mikrotik CRS354-48G-4S+2Q+. Da Endpunkte und Felder firmwareabhängig sind, ist eine pauschale Zusage für jedes Modell nicht möglich. Lesezugriffe und anschließend Schreibaktionen immer mit der konkreten Firmware testen.
 
 </details>
 
@@ -446,7 +446,7 @@ Many SwitchOS devices only provide their management endpoints via HTTP Digest. D
 <details>
 <summary><strong>Which MikroTik switches are compatible?</strong></summary>
 
-The implementation primarily targets CRS3xx and CSS3xx devices running SwitchOS 2.x. Because endpoints and fields vary by device family, compatibility cannot be guaranteed for every model. Test read operations first, followed by write operations, using the exact firmware version in your environment.
+The implementation primarily targets Mikrotik CSS-326-24G-2S+RM | Mikrotik CRS326-24S+2Q+RM | Mikrotik CRS317-1G-16S+RM | Mikrotik CRS354-48G-4S+2Q+. Because endpoints and fields vary by device family, compatibility cannot be guaranteed for every model. Test read operations first, followed by write operations, using the exact firmware version in your environment.
 
 </details>
 

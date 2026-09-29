@@ -10,5 +10,5 @@
   <text x="194" y="101" fill="url(#word)" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="68" font-weight="800" letter-spacing="-2">Switchly</text>
   <text x="198" y="137" fill="#8f99b9" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" letter-spacing="3.4">NETWORK CONTROL CENTER</text>
   <rect x="570" y="119" width="116" height="30" rx="15" fill="#6d5dfc" fill-opacity=".18" stroke="#8174ff" stroke-opacity=".5"/>
-  <text x="628" y="139" text-anchor="middle" fill="#b9b1ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700">v1.4.7 BETA</text>
+  <text x="628" y="139" text-anchor="middle" fill="#b9b1ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700">v1.4.8 BETA</text>
 </svg>

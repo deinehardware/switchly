@@ -13,6 +13,10 @@ require_once __DIR__ . '/AppInfo.php';
  */
 final class AlertService
 {
+    /** Contains a human-readable reason when the most recent delivery failed. */
+    private static string $lastDeliveryError = '';
+
+    /** Contains the webhook-specific error used by the manual test endpoint. */
     private static string $lastWebhookError = '';
 
     /** @return array<string, mixed> Persisted singleton alert configuration. */
@@ -30,6 +34,9 @@ final class AlertService
      */
     public static function save(array $values): void
     {
+        // Read the previous master state before writing so a disabled alert
+        // configuration can be re-armed only on a real off-to-on transition.
+        $previousSettings = self::settings();
         $recipients = array_values(array_unique(array_filter(array_map('trim', preg_split('/[,;\\s]+/', (string)($values['email_recipients'] ?? '')) ?: []))));
         foreach ($recipients as $email) if (!filter_var($email, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Ungültige Alert-E-Mail-Adresse: ' . $email);
         $webhookUrl = trim((string)($values['webhook_url'] ?? ''));
@@ -44,18 +51,40 @@ final class AlertService
         $smtpSecure = strtolower(trim((string)($values['smtp_secure'] ?? 'tls')));
         $smtpUsername = trim((string)($values['smtp_username'] ?? ''));
         $smtpFrom = strtolower(trim((string)($values['smtp_from'] ?? '')));
+        $gmailEnabled = !empty($values['gmail_oauth_enabled']);
+        $gmailClientId = trim((string)($values['gmail_client_id'] ?? ''));
+        $gmailClientSecret = (string)($values['gmail_client_secret'] ?? '');
+        $gmailSender = strtolower(trim((string)($values['gmail_sender'] ?? '')));
         if ($smtpHost !== '' && (!preg_match('/^[a-zA-Z0-9.-]+$/', $smtpHost) || strlen($smtpHost) > 253)) throw new RuntimeException('SMTP-Host ist ungültig.');
         if ($smtpPort < 1 || $smtpPort > 65535) throw new RuntimeException('SMTP-Port muss zwischen 1 und 65535 liegen.');
         if (!in_array($smtpSecure, ['', 'tls', 'ssl'], true)) throw new RuntimeException('SMTP-Verschlüsselung muss TLS, SSL oder keine sein.');
         if (preg_match('/[\r\n]/', $smtpUsername)) throw new RuntimeException('SMTP-Benutzername enthält ungültige Zeichen.');
         if ($smtpFrom !== '' && !filter_var($smtpFrom, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('SMTP-Absenderadresse ist ungültig.');
         if ($smtpHost !== '' && $smtpFrom === '') throw new RuntimeException('Für SMTP muss eine Absenderadresse angegeben werden.');
-        $stmt = Database::getConnection()->prepare("UPDATE alert_settings SET enabled=:enabled,email_enabled=:email_enabled,email_recipients=:recipients,webhook_enabled=:webhook_enabled,webhook_url=:url,webhook_secret=:secret,recovery_enabled=:recovery,failure_threshold=:threshold,cooldown_minutes=:cooldown,smtp_host=:smtp_host,smtp_port=:smtp_port,smtp_secure=:smtp_secure,smtp_username=:smtp_username,smtp_password=:smtp_password,smtp_from=:smtp_from,updated_at=CURRENT_TIMESTAMP WHERE id=1");
+        if ($gmailSender !== '' && !filter_var($gmailSender, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Die Gmail-Absenderadresse ist ungültig.');
+        if ($gmailEnabled && ($gmailClientId === '' || $gmailClientSecret === '' || $gmailSender === '')) throw new RuntimeException('Für Gmail OAuth2 werden Client-ID, Client-Secret und Absenderadresse benötigt.');
+
+        // An enabled master switch without a usable channel looks healthy in
+        // the UI but can never deliver an alert. Reject that configuration.
+        $alertsEnabled = !empty($values['enabled']);
+        $emailEnabled = !empty($values['email_enabled']);
+        $webhookEnabled = !empty($values['webhook_enabled']);
+        if ($alertsEnabled && !$emailEnabled && !$webhookEnabled) {
+            throw new RuntimeException('Zum Aktivieren der Alerts muss mindestens ein Benachrichtigungskanal aktiviert sein.');
+        }
+        if ($alertsEnabled && $emailEnabled && $recipients === []) {
+            throw new RuntimeException('Für E-Mail-Alerts muss mindestens ein Empfänger angegeben werden.');
+        }
+        if ($alertsEnabled && $webhookEnabled && $webhookUrl === '') {
+            throw new RuntimeException('Für Webhook-Alerts muss eine Webhook-URL angegeben werden.');
+        }
+
+        $stmt = Database::getConnection()->prepare("UPDATE alert_settings SET enabled=:enabled,email_enabled=:email_enabled,email_recipients=:recipients,webhook_enabled=:webhook_enabled,webhook_url=:url,webhook_secret=:secret,recovery_enabled=:recovery,failure_threshold=:threshold,cooldown_minutes=:cooldown,smtp_host=:smtp_host,smtp_port=:smtp_port,smtp_secure=:smtp_secure,smtp_username=:smtp_username,smtp_password=:smtp_password,smtp_from=:smtp_from,gmail_oauth_enabled=:gmail_enabled,gmail_client_id=:gmail_client_id,gmail_client_secret=:gmail_client_secret,gmail_sender=:gmail_sender,updated_at=CURRENT_TIMESTAMP WHERE id=1");
         $stmt->execute([
-            'enabled' => !empty($values['enabled']) ? 1 : 0,
-            'email_enabled' => !empty($values['email_enabled']) ? 1 : 0,
+            'enabled' => $alertsEnabled ? 1 : 0,
+            'email_enabled' => $emailEnabled ? 1 : 0,
             'recipients' => implode(', ', $recipients),
-            'webhook_enabled' => !empty($values['webhook_enabled']) ? 1 : 0,
+            'webhook_enabled' => $webhookEnabled ? 1 : 0,
             'url' => $webhookUrl,
             'secret' => trim((string)($values['webhook_secret'] ?? '')),
             'recovery' => !empty($values['recovery_enabled']) ? 1 : 0,
@@ -67,12 +96,25 @@ final class AlertService
             'smtp_username' => $smtpUsername,
             'smtp_password' => (string)($values['smtp_password'] ?? ''),
             'smtp_from' => $smtpFrom,
+            'gmail_enabled' => $gmailEnabled ? 1 : 0,
+            'gmail_client_id' => $gmailClientId,
+            'gmail_client_secret' => $gmailClientSecret,
+            'gmail_sender' => $gmailSender,
         ]);
+
+        // A newly enabled master configuration starts with fresh counters.
+        // This also allows an already-offline switch to trigger a new alert.
+        if ($alertsEnabled && empty($previousSettings['enabled'])) {
+            Database::getConnection()->exec('DELETE FROM alert_states');
+        }
     }
 
     /** Records one probe result and emits a transition alert when required. */
     public static function recordStatus(array $switch, bool $online, string $detail = ''): void
     {
+        // Per-switch exclusion affects only alerts; polling and history remain
+        // active. Missing values are treated as enabled for legacy callers.
+        if (array_key_exists('alert_monitoring_enabled', $switch) && empty($switch['alert_monitoring_enabled'])) return;
         $db = Database::getConnection();
         $settings = self::settings();
         $stmt = $db->prepare('SELECT * FROM alert_states WHERE switch_id = :id');
@@ -85,20 +127,37 @@ final class AlertService
         $changedAt = ($previous === null || $previous !== $online) ? $now : (int)$state['last_change_at'];
 
         if (!empty($settings['enabled'])) {
-            $cooldownElapsed = !$sent || ($now - (int)$state['last_alert_at']) >= ((int)$settings['cooldown_minutes'] * 60);
+            // Cooldown is based on the last delivery attempt, not only on a
+            // successful down alert. Broken SMTP/webhooks therefore do not
+            // generate a log entry on every worker pass.
+            $lastAttemptAt = (int)$state['last_alert_at'];
+            $cooldownElapsed = $lastAttemptAt === 0 || ($now - $lastAttemptAt) >= ((int)$settings['cooldown_minutes'] * 60);
             if (!$online && $failures >= (int)$settings['failure_threshold'] && $cooldownElapsed) {
                 $delivered = self::deliver($switch, false, $detail, $settings);
+                $state['last_alert_at'] = $now;
                 if ($delivered) {
                     $sent = 1;
-                    $state['last_alert_at'] = $now;
                     Logger::switchEvent('ERROR', 'SWITCH_DOWN_ALERT', 'Ausfall-Alert für ' . $switch['name'] . ' versendet.', (string)$switch['id']);
+                } else {
+                    Logger::switchEvent('ERROR', 'ALERT_DELIVERY_FAILED', 'Ausfall-Alert für ' . $switch['name'] . ' konnte nicht versendet werden: ' . self::$lastDeliveryError, (string)$switch['id']);
                 }
-            } elseif ($online && $sent && !empty($settings['recovery_enabled'])) {
-                if (self::deliver($switch, true, '', $settings)) Logger::switchEvent('INFO', 'SWITCH_RECOVERY_ALERT', 'Recovery-Alert für ' . $switch['name'] . ' versendet.', (string)$switch['id']);
-                $sent = 0;
+            } elseif ($online && $sent && !empty($settings['recovery_enabled']) && ($previous === false || $cooldownElapsed)) {
+                // The first online transition sends recovery immediately.
+                // Keep the down state armed when that delivery fails so a
+                // later online worker pass can retry after the cooldown.
+                $delivered = self::deliver($switch, true, '', $settings);
                 $state['last_alert_at'] = $now;
+                if ($delivered) {
+                    $sent = 0;
+                    Logger::switchEvent('INFO', 'SWITCH_RECOVERY_ALERT', 'Recovery-Alert für ' . $switch['name'] . ' versendet.', (string)$switch['id']);
+                } else {
+                    Logger::switchEvent('ERROR', 'ALERT_DELIVERY_FAILED', 'Recovery-Alert für ' . $switch['name'] . ' konnte nicht versendet werden: ' . self::$lastDeliveryError, (string)$switch['id']);
+                }
             } elseif ($online) {
-                $sent = 0;
+                // Without recovery notifications an online probe completes
+                // the incident immediately; otherwise a pending recovery is
+                // retained until it has actually been delivered.
+                if (empty($settings['recovery_enabled'])) $sent = 0;
             }
         } elseif ($online) {
             $sent = 0;
@@ -119,21 +178,51 @@ final class AlertService
         $switch = ['id' => 'test', 'name' => AppInfo::NAME . ' Test-Alert', 'host' => '127.0.0.1'];
         return [
             'delivered' => self::deliver($switch, false, 'Dies ist ein manueller Test der Benachrichtigungskanäle.', $settings),
-            'error' => self::$lastWebhookError,
+            // Return the combined delivery reason so SMTP-only failures are
+            // just as visible to administrators as webhook failures.
+            'error' => self::$lastDeliveryError,
         ];
+    }
+
+    /**
+     * Clears the retry cooldown only for failed, still-unsent incidents.
+     * The next worker pass can therefore deliver immediately after an
+     * administrator has repaired and successfully tested a channel.
+     */
+    public static function rearmPendingFailures(): int
+    {
+        $stmt = Database::getConnection()->prepare('UPDATE alert_states SET last_alert_at=0 WHERE down_alert_sent=0 AND consecutive_failures>0');
+        $stmt->execute();
+        return $stmt->rowCount();
     }
 
     /** Versendet einen Alarm über alle aktivierten Kanäle und meldet, ob mindestens einer erfolgreich war. */
     private static function deliver(array $switch, bool $online, string $detail, array $settings): bool
     {
+        self::$lastDeliveryError = '';
         $delivered = false;
+        $attempted = false;
+        $errors = [];
         if (!empty($settings['email_enabled'])) {
             $recipients = array_filter(array_map('trim', preg_split('/[,;\\s]+/', (string)$settings['email_recipients']) ?: []));
-            foreach ($recipients as $recipient) $delivered = EmailService::sendSwitchAlert($recipient, $switch, $online, $detail) || $delivered;
+            foreach ($recipients as $recipient) {
+                $attempted = true;
+                $sent = EmailService::sendSwitchAlert($recipient, $switch, $online, $detail);
+                $delivered = $sent || $delivered;
+                if (!$sent) {
+                    $reason = trim(EmailService::lastError());
+                    $errors[] = 'E-Mail an ' . $recipient . ' fehlgeschlagen' . ($reason !== '' ? ': ' . $reason : '');
+                }
+            }
         }
         if (!empty($settings['webhook_enabled']) && trim((string)$settings['webhook_url']) !== '') {
-            $delivered = self::sendWebhook((string)$settings['webhook_url'], (string)$settings['webhook_secret'], $switch, $online, $detail) || $delivered;
+            $attempted = true;
+            $sent = self::sendWebhook((string)$settings['webhook_url'], (string)$settings['webhook_secret'], $switch, $online, $detail);
+            $delivered = $sent || $delivered;
+            if (!$sent) $errors[] = self::$lastWebhookError !== '' ? self::$lastWebhookError : 'Webhook-Versand fehlgeschlagen';
         }
+        if (!$attempted) $errors[] = 'kein nutzbarer Benachrichtigungskanal konfiguriert';
+        self::$lastDeliveryError = $delivered ? '' : implode('; ', $errors);
         return $delivered;
     }
 
@@ -201,7 +290,6 @@ final class AlertService
         $response = curl_exec($ch);
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
-        curl_close($ch);
         if ($response !== false && $status >= 200 && $status < 300) return true;
 
         $responseDetail = is_string($response) ? trim(substr($response, 0, 500)) : '';

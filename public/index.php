@@ -11,6 +11,7 @@ require_once __DIR__ . '/../src/Auth.php';
 require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/Permission.php';
 require_once __DIR__ . '/../src/AppInfo.php';
+require_once __DIR__ . '/../src/Locale.php';
 Auth::requireLogin();
 // Ermittelt Rolle und effektive Rechte frisch aus der Datenbank für die sichtbare Navigation.
 $db = Database::getConnection();
@@ -22,10 +23,20 @@ $_SESSION['role'] = $role;
 $isAdmin = $role === 'admin';
 $currentUser = Permission::currentUser();
 $permissions = $currentUser ? Permission::codesFor($currentUser) : [];
+$language = Locale::current($currentUser);
+$defaultLanguage = Locale::defaultLanguage();
+$gmailOauthError = (string)($_SESSION['gmail_oauth_error'] ?? '');
+unset($_SESSION['gmail_oauth_error']);
+$assetVersion = rawurlencode(AppInfo::VERSION . '-' . (string)max(
+    (int)@filemtime(__DIR__ . '/assets/style.css'),
+    (int)@filemtime(__DIR__ . '/assets/dashboard.js'),
+    (int)@filemtime(__DIR__ . '/assets/app.js'),
+    (int)@filemtime(__DIR__ . '/assets/i18n.js')
+));
 $can = static fn(string $code): bool => in_array($code, $permissions, true);
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<?=htmlspecialchars($language, ENT_QUOTES)?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -33,18 +44,18 @@ $can = static fn(string $code): bool => in_array($code, $permissions, true);
 <meta name="application-name" content="<?=AppInfo::NAME?>">
 <meta name="switchly-version" content="<?=AppInfo::DISPLAY_VERSION?>">
 <title><?=AppInfo::NAME?> · <?=AppInfo::DISPLAY_VERSION?></title>
-<link rel="icon" href="assets/favicon.ico?v=1.4.7" sizes="any">
-<link rel="icon" type="image/svg+xml" href="assets/switchly.svg?v=1.4.7">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1.4.7">
-<link rel="manifest" href="assets/site.webmanifest?v=1.4.7">
-<link rel="stylesheet" href="assets/style.css?v=1.4.7">
+<link rel="icon" href="assets/favicon.ico?v=<?=$assetVersion?>" sizes="any">
+<link rel="icon" type="image/svg+xml" href="assets/switchly.svg?v=<?=$assetVersion?>">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=<?=$assetVersion?>">
+<link rel="manifest" href="assets/site.webmanifest?v=<?=$assetVersion?>">
+<link rel="stylesheet" href="assets/style.css?v=<?=$assetVersion?>">
 </head>
-<body data-app-version="<?=AppInfo::DISPLAY_VERSION?>" data-username="<?=htmlspecialchars($username, ENT_QUOTES)?>" data-role="<?=htmlspecialchars($role, ENT_QUOTES)?>" data-permissions="<?=htmlspecialchars(json_encode($permissions), ENT_QUOTES)?>" data-csrf="<?=htmlspecialchars(Auth::csrfToken(), ENT_QUOTES)?>">
+<body data-app-version="<?=AppInfo::DISPLAY_VERSION?>" data-username="<?=htmlspecialchars($username, ENT_QUOTES)?>" data-role="<?=htmlspecialchars($role, ENT_QUOTES)?>" data-permissions="<?=htmlspecialchars(json_encode($permissions), ENT_QUOTES)?>" data-csrf="<?=htmlspecialchars(Auth::csrfToken(), ENT_QUOTES)?>" data-language="<?=htmlspecialchars($language, ENT_QUOTES)?>" data-default-language="<?=htmlspecialchars($defaultLanguage, ENT_QUOTES)?>" data-gmail-oauth-error="<?=htmlspecialchars($gmailOauthError, ENT_QUOTES)?>">
 <div class="app-layout">
 <!-- Dauerhafte Navigation mit ausschließlich freigegebenen Verwaltungsbereichen. -->
 <aside class="sidebar">
   <div class="sidebar-header">
-    <div class="logo-box"><img class="brand-mark" src="assets/switchly-mark.svg?v=1.4.7" alt="Switchly" width="44" height="44"></div>
+    <div class="logo-box"><img class="brand-mark" src="assets/switchly-mark.svg?v=<?=$assetVersion?>" alt="Switchly" width="44" height="44"></div>
     <div class="sidebar-title"><h2><?=AppInfo::NAME?></h2><span>Network Control Center</span><small class="brand-version"><?=AppInfo::DISPLAY_VERSION?></small></div>
   </div>
 
@@ -75,6 +86,7 @@ $can = static fn(string $code): bool => in_array($code, $permissions, true);
 
   <div class="sidebar-footer">
     <div class="sidebar-divider"></div>
+    <button id="languageSettingsBtn" type="button" class="language-settings-btn"><span class="language-settings-icon">◎</span><span>Sprache</span><strong><?=strtoupper(htmlspecialchars($language, ENT_QUOTES))?></strong><span class="language-settings-arrow">›</span></button>
     <div class="logged-in">Angemeldet als: <strong><?= htmlspecialchars($username) ?></strong></div>
     <div class="role-chip"><?= $isAdmin ? 'ADMINISTRATOR' : 'BENUTZER' ?></div>
     <a href="profile.php" class="profile-btn"><span>⚙</span> Profil &amp; 2FA</a>
@@ -222,13 +234,13 @@ $can = static fn(string $code): bool => in_array($code, $permissions, true);
     <header class="top-bar"><div><span class="subhead">MONITORING</span><h1>Switch-Down Alerts</h1></div></header>
     <form id="alertForm">
       <div class="alert-layout">
-        <section class="card">
+        <section class="card alert-general-card">
           <div class="card-header"><div class="card-title"><h3>ALLGEMEIN</h3><span>Unabhängige Prüfung im Container, auch ohne geöffnetes Dashboard</span></div></div>
           <label class="setting-toggle"><input id="alertEnabled" type="checkbox"><span>Ausfall-Alerts aktivieren</span></label>
           <div class="form-grid alert-fields"><div class="form-group"><label>Fehlversuche vor Alarm</label><input id="alertThreshold" type="number" min="1" max="10" value="2"></div><div class="form-group"><label>Cooldown (Minuten)</label><input id="alertCooldown" type="number" min="1" max="1440" value="30"></div></div>
           <label class="setting-toggle"><input id="alertRecovery" type="checkbox" checked><span>Recovery senden, wenn Switch wieder online ist</span></label>
         </section>
-        <section class="card">
+        <section class="card alert-mail-card">
           <div class="card-header"><div class="card-title"><h3>E-MAIL &amp; SMTP</h3><span>SMTP wird sicher in Switchly verwaltet; Passwörter werden nie zurückgegeben</span></div></div>
           <label class="setting-toggle"><input id="alertEmailEnabled" type="checkbox"><span>E-Mail-Benachrichtigung</span></label>
           <div class="form-group alert-fields"><label>Empfänger (Komma oder Leerzeichen getrennt)</label><input id="alertRecipients" type="text" placeholder="noc@example.com, admin@example.com"></div>
@@ -244,8 +256,23 @@ $can = static fn(string $code): bool => in_array($code, $permissions, true);
             <div class="form-group"><label>SMTP-Benutzername</label><input id="smtpUsername" type="text" autocomplete="username"></div>
             <div class="form-group"><label>SMTP-Passwort <span id="smtpPasswordHint"></span></label><input id="smtpPassword" type="password" autocomplete="new-password" placeholder="Leer lassen = unverändert"></div>
           </div>
+          <!-- Gmail OAuth2 bypasses password-based SMTP account challenges. -->
+          <div class="gmail-oauth-box">
+            <div class="gmail-oauth-header">
+              <div><strong>GMAIL OAUTH2</strong><small>Optional statt SMTP-Passwort verwenden</small></div>
+              <label class="setting-toggle"><input id="gmailOauthEnabled" type="checkbox"><span>Gmail OAuth2 verwenden</span></label>
+            </div>
+            <div class="form-group"><label>Google OAuth Client-ID</label><input id="gmailClientId" type="text" autocomplete="off"></div>
+            <div class="form-grid">
+              <div class="form-group"><label>Google OAuth Client-Secret <span id="gmailClientSecretHint"></span></label><input id="gmailClientSecret" type="password" autocomplete="new-password" placeholder="Leer lassen = unverändert"></div>
+              <div class="form-group"><label>Gmail-Absenderadresse</label><input id="gmailSender" type="email" placeholder="name@gmail.com"></div>
+            </div>
+            <p class="muted">Zuerst Einstellungen speichern. In Google als autorisierte Weiterleitungs-URI die angezeigte Callback-URL eintragen.</p>
+            <div class="gmail-oauth-callback"><span>Callback-URL</span><code id="gmailCallbackUrl"></code></div>
+            <div class="gmail-oauth-actions"><span id="gmailOauthStatus" class="badge badge-muted">NICHT VERBUNDEN</span><button type="button" id="gmailOauthConnectBtn" class="btn">Mit Google verbinden</button></div>
+          </div>
         </section>
-        <section class="card">
+        <section class="card alert-webhook-card">
           <div class="card-header"><div class="card-title"><h3>WEBHOOK</h3><span>Discord wird automatisch als formatierte Nachricht gesendet</span></div></div>
           <label class="setting-toggle"><input id="alertWebhookEnabled" type="checkbox"><span>Webhook-Benachrichtigung</span></label>
           <div class="form-group alert-fields"><label>Webhook-URL</label><input id="alertWebhookUrl" type="url" placeholder="https://discord.com/api/webhooks/…"></div>
@@ -261,8 +288,10 @@ $can = static fn(string $code): bool => in_array($code, $permissions, true);
 </div>
 
 <?php if ($can('switches.manage')): ?><!-- Switch hinzufügen -->
-<div id="addModal" class="modal" aria-hidden="true"><div class="modal-content"><button type="button" class="modal-x" data-close="addModal">×</button><div class="modal-heading"><h3>Neuen Switch hinzufügen</h3><p>MikroTik SwOS Switch zur Überwachung hinzufügen.</p></div><form id="addSwitchForm"><div class="form-grid"><div class="form-group"><label>ID</label><input type="text" name="id" required placeholder="core-sw"></div><div class="form-group"><label>Name</label><input type="text" name="name" required placeholder="Core Switch"></div></div><div class="form-grid"><div class="form-group"><label>IP-Adresse / Host</label><input type="text" name="host" required placeholder="192.168.178.70"></div><div class="form-group small-field"><label>Port</label><input type="number" name="port" value="80" required></div></div><div class="form-group"><label>Benutzername</label><input type="text" name="username" value="admin" required></div><div class="form-group"><label>Passwort</label><input type="password" name="password" placeholder="Leer lassen, falls keines gesetzt ist"></div><div class="modal-actions"><button type="button" id="closeAddModal" class="btn">Abbrechen</button><button type="submit" class="btn btn-primary">Speichern</button></div></form></div></div>
+<div id="addModal" class="modal" aria-hidden="true"><div class="modal-content"><button type="button" class="modal-x" data-close="addModal">×</button><div class="modal-heading"><h3>Neuen Switch hinzufügen</h3><p>MikroTik SwOS Switch zur Überwachung hinzufügen.</p></div><form id="addSwitchForm"><div class="form-grid"><div class="form-group"><label>ID</label><input type="text" name="id" required placeholder="core-sw"></div><div class="form-group"><label>Name</label><input type="text" name="name" required placeholder="Core Switch"></div></div><div class="form-grid"><div class="form-group"><label>IP-Adresse / Host</label><input type="text" name="host" required placeholder="192.168.178.70"></div><div class="form-group small-field"><label>Port</label><input type="number" name="port" value="80" required></div></div><div class="form-group"><label>Benutzername</label><input type="text" name="username" value="admin" required></div><div class="form-group"><label>Passwort</label><input type="password" name="password" placeholder="Leer lassen, falls keines gesetzt ist"></div><label class="setting-toggle"><input type="checkbox" name="alert_monitoring_enabled" value="1" checked><span>Alert-Monitoring für diesen Switch aktivieren</span></label><div class="modal-actions"><button type="button" id="closeAddModal" class="btn">Abbrechen</button><button type="submit" class="btn btn-primary">Speichern</button></div></form></div></div>
 <?php endif; ?>
+
+<div id="languageModal" class="modal" aria-hidden="true"><div class="modal-content language-modal-content"><button type="button" class="modal-x" data-close="languageModal">×</button><div class="modal-heading"><span class="subhead">LOKALISIERUNG</span><h3>Spracheinstellungen</h3><p>Wähle deine persönliche Oberflächensprache.</p></div><section class="language-setting-row"><div><strong>Meine Sprache</strong><small>Gilt nur für dein Benutzerkonto</small></div><div class="language-switch language-switch-large" role="group" aria-label="Sprache auswählen"><button type="button" data-set-language="de" class="<?= $language === 'de' ? 'active' : '' ?>">Deutsch</button><button type="button" data-set-language="en" class="<?= $language === 'en' ? 'active' : '' ?>">English</button></div></section><?php if ($isAdmin): ?><section class="language-setting-row language-default-row"><div><strong>Standardsprache</strong><small>Für Anmeldung und Benutzer ohne eigene Auswahl</small></div><div class="language-switch language-switch-large default-language-switch" role="group" aria-label="Standardsprache auswählen"><button type="button" data-set-default-language="de" class="<?= $defaultLanguage === 'de' ? 'active' : '' ?>">Deutsch</button><button type="button" data-set-default-language="en" class="<?= $defaultLanguage === 'en' ? 'active' : '' ?>">English</button></div><small id="languageStatus" class="language-save-status"></small></section><?php endif; ?><div class="modal-actions"><button type="button" class="btn" data-close="languageModal">Schließen</button></div></div></div>
 
 <!-- Technische Rohdaten des aktuell ausgewählten Switches. -->
 <div id="jsonModal" class="modal" aria-hidden="true"><div class="modal-content modal-lg"><button type="button" class="modal-x" data-close="jsonModal">×</button><div class="modal-heading"><h3>Raw SwOS Response</h3><p>Unverarbeitete Antwort des ausgewählten Switches.</p></div><pre id="jsonViewer"></pre><div class="modal-actions"><button id="closeJsonModal" class="btn">Schließen</button></div></div></div>
@@ -279,7 +308,8 @@ $can = static fn(string $code): bool => in_array($code, $permissions, true);
 <div id="groupModal" class="modal" aria-hidden="true"><div class="modal-content modal-lg"><button type="button" class="modal-x" data-close="groupModal">×</button><div class="modal-heading"><h3 id="groupModalTitle">Gruppe hinzufügen</h3><p>Mitglieder, Gruppenrechte und Switch-Zugriffe zentral verwalten.</p></div><form id="groupForm"><input type="hidden" id="groupId"><div class="form-grid"><div class="form-group"><label>Name</label><input id="groupName" required></div><div class="form-group"><label>Beschreibung</label><input id="groupDescription"></div></div><div class="permission-columns"><div><h4>Benutzer in dieser Gruppe</h4><div id="groupUserChecks" class="check-grid"></div><h4>Rechte</h4><div id="groupPermissionChecks" class="check-grid"></div></div><div><h4>Switch-Zugriff</h4><div id="groupSwitchChecks" class="check-grid"></div></div></div><div class="modal-actions"><button type="button" class="btn" data-close="groupModal">Abbrechen</button><button class="btn btn-primary">Gruppe speichern</button></div></form></div></div>
 <?php endif; ?>
 
-<script src="assets/dashboard.js?v=1.4.7"></script>
-<script src="assets/app.js?v=1.4.7"></script>
+<script charset="UTF-8" src="assets/dashboard.js?v=<?=$assetVersion?>"></script>
+<script charset="UTF-8" src="assets/i18n.js?v=<?=$assetVersion?>"></script>
+<script charset="UTF-8" src="assets/app.js?v=<?=$assetVersion?>"></script>
 </body>
 </html>

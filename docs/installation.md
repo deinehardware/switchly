@@ -39,7 +39,7 @@ Die SQLite-Datenbank bleibt im Docker-Volume `switchly_data` erhalten. Der Conta
 ## Docker CLI
 
 ```bash
-docker build --pull -t switchly:1.4.7-beta .
+docker build --pull -t switchly:1.4.8-beta .
 docker volume create switchly_data
 docker run -d \
   --name switchly \
@@ -53,7 +53,7 @@ docker run -d \
   -e SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite \
   -p 8080:8080 \
   -v switchly_data:/var/lib/switchly \
-  switchly:1.4.7-beta
+  switchly:1.4.8-beta
 ```
 
 ## Bare Metal
@@ -155,7 +155,7 @@ The SQLite database persists in the `switchly_data` Docker volume. The container
 ## Docker CLI
 
 ```bash
-docker build --pull -t switchly:1.4.7-beta .
+docker build --pull -t switchly:1.4.8-beta .
 docker volume create switchly_data
 docker run -d \
   --name switchly \
@@ -169,7 +169,7 @@ docker run -d \
   -e SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite \
   -p 8080:8080 \
   -v switchly_data:/var/lib/switchly \
-  switchly:1.4.7-beta
+  switchly:1.4.8-beta
 ```
 
 <a id="en-bare-metal"></a>

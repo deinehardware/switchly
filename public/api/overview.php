@@ -24,7 +24,7 @@ try {
         foreach ($ids as $i => $id) { $key = 'sid' . $i; $holders[] = ':' . $key; $params[$key] = $id; }
         $where = ' WHERE s.id IN (' . implode(',', $holders) . ')';
     }
-    $stmt = $db->prepare("SELECT s.id, s.name, s.host, s.port,
+    $stmt = $db->prepare("SELECT s.id, s.name, s.host, s.port, s.alert_monitoring_enabled,
         COALESCE(c.is_online, 0) AS is_online,
         c.info_json, c.ports_json, c.updated_at
         FROM switches s
@@ -45,6 +45,7 @@ try {
             'name' => $row['name'],
             'host' => $row['host'],
             'port' => (int)$row['port'],
+            'alert_monitoring_enabled' => (int)$row['alert_monitoring_enabled'],
             'is_online' => (int)$row['is_online'],
             'updated_at' => $row['updated_at'] !== null ? (int)$row['updated_at'] : null,
             'ports_total' => count($ports),

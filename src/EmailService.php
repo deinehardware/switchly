@@ -5,10 +5,20 @@ declare(strict_types=1);
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/AppInfo.php';
+require_once __DIR__ . '/GmailOAuthService.php';
 
 /** Composes and delivers transactional verification and switch-alert e-mails. */
 final class EmailService
 {
+    /** Stores the last transport error without ever including credentials. */
+    private static string $lastError = '';
+
+    /** Returns the most recent delivery error for API and alert diagnostics. */
+    public static function lastError(): string
+    {
+        return self::$lastError;
+    }
+
     /**
      * Replaces the user's verification token and sends a 24-hour link.
      *
@@ -83,7 +93,11 @@ final class EmailService
      */
     public static function sendSwitchAlert(string $to, array $switch, bool $online, string $detail = ''): bool
     {
-        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
+        self::$lastError = '';
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            self::$lastError = 'Die Empfängeradresse ist ungültig.';
+            return false;
+        }
         $name = (string)($switch['name'] ?? $switch['id'] ?? 'Switch');
         $host = (string)($switch['host'] ?? '');
         $status = $online ? 'wieder online' : 'nicht erreichbar';
@@ -155,13 +169,37 @@ final class EmailService
     /** Wählt zwischen konfiguriertem SMTP-Versand und der PHP-Mailfunktion. */
     private static function send(string $to, string $subject, string $text, string $html): bool
     {
+        self::$lastError = '';
+        $gmail = GmailOAuthService::settings();
+        if (!empty($gmail['gmail_oauth_enabled'])) {
+            if (!GmailOAuthService::ready($gmail)) {
+                self::$lastError = 'Gmail OAuth2 ist aktiviert, aber noch nicht vollständig verbunden.';
+                return false;
+            }
+            $from = (string)$gmail['gmail_sender'];
+            [$headers, $body] = self::composeMessage($from, $to, $subject, $text, $html, true);
+            try {
+                GmailOAuthService::sendRaw(implode("\r\n", $headers) . "\r\n\r\n" . $body, $gmail);
+                return true;
+            } catch (Throwable $error) {
+                self::$lastError = $error->getMessage();
+                return false;
+            }
+        }
         $settings = self::smtpSettings();
         if ($settings['host'] !== '') return self::sendSmtp($to, $subject, $text, $html, $settings);
         $from = $settings['from'] !== '' ? $settings['from'] : 'switchly@localhost';
-        if (!filter_var($from, FILTER_VALIDATE_EMAIL)) return false;
+        if (!filter_var($from, FILTER_VALIDATE_EMAIL)) {
+            self::$lastError = 'Die SMTP-Absenderadresse ist ungültig.';
+            return false;
+        }
         [$headers, $body] = self::composeMessage($from, $to, $subject, $text, $html, false);
         $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
-        return @mail($to, $encodedSubject, $body, implode("\r\n", $headers));
+        $sent = @mail($to, $encodedSubject, $body, implode("\r\n", $headers));
+        if (!$sent) {
+            self::$lastError = 'Kein SMTP-Host konfiguriert und PHP mail() konnte die Nachricht nicht an den lokalen Maildienst übergeben.';
+        }
+        return $sent;
     }
 
     /** Überträgt eine Nachricht über eine optionale TLS- und Login-geschützte SMTP-Verbindung. */
@@ -178,38 +216,73 @@ final class EmailService
             'SNI_enabled' => true,
         ]]);
         $socket = @stream_socket_client($transport . $host . ':' . $port, $errno, $error, 10, STREAM_CLIENT_CONNECT, $context);
-        if (!$socket) return false;
+        if (!$socket) {
+            self::$lastError = 'SMTP-Verbindung zu ' . $host . ':' . $port . ' fehlgeschlagen'
+                . ($error !== '' ? ': ' . $error : ($errno ? ' (Fehler ' . $errno . ')' : '.'));
+            return false;
+        }
         stream_set_timeout($socket, 10);
 
+        // SMTP replies are retained so the caller receives the actual server
+        // reason while credentials and AUTH payloads remain undisclosed.
+        $lastResponse = '';
         $read = static function () use ($socket): string {
             $response = '';
             do { $line = fgets($socket, 515); if ($line === false) break; $response .= $line; } while (isset($line[3]) && $line[3] === '-');
             return $response;
         };
-        $command = static function (string $line, array $ok) use ($socket, $read): bool {
+        $command = static function (string $line, array $ok) use ($socket, $read, &$lastResponse): bool {
             fwrite($socket, $line . "\r\n");
-            return in_array((int)substr($read(), 0, 3), $ok, true);
+            $lastResponse = $read();
+            return in_array((int)substr($lastResponse, 0, 3), $ok, true);
+        };
+        $fail = static function (string $message) use ($socket, &$lastResponse): bool {
+            self::$lastError = $message . self::smtpResponseSuffix($lastResponse);
+            fclose($socket);
+            return false;
         };
 
-        if ((int)substr($read(), 0, 3) !== 220 || !$command('EHLO switchly', [250])) { fclose($socket); return false; }
+        $lastResponse = $read();
+        if ((int)substr($lastResponse, 0, 3) !== 220) return $fail('SMTP-Server hat die Verbindung nicht akzeptiert.');
+        if (!$command('EHLO switchly', [250])) return $fail('SMTP-EHLO wurde abgelehnt.');
         if ($secure === 'tls') {
-            if (!$command('STARTTLS', [220]) || !stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT) || !$command('EHLO switchly', [250])) { fclose($socket); return false; }
+            if (!$command('STARTTLS', [220])) return $fail('SMTP-Server hat STARTTLS abgelehnt.');
+            if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) return $fail('TLS-Verschlüsselung konnte nicht aufgebaut werden.');
+            if (!$command('EHLO switchly', [250])) return $fail('SMTP-EHLO nach STARTTLS wurde abgelehnt.');
         }
         $username = $settings['username'];
         if ($username !== '') {
-            if (!$command('AUTH LOGIN', [334]) || !$command(base64_encode($username), [334]) || !$command(base64_encode($settings['password']), [235])) { fclose($socket); return false; }
+            if (!$command('AUTH LOGIN', [334])) return $fail('SMTP-Server unterstützt AUTH LOGIN nicht oder hat die Anmeldung abgelehnt.');
+            if (!$command(base64_encode($username), [334])) return $fail('SMTP-Benutzername wurde abgelehnt.');
+            // Google displays app passwords in four groups. Ignore pasted
+            // whitespace for smtp.gmail.com while preserving other providers.
+            $password = (string)$settings['password'];
+            if (strtolower($host) === 'smtp.gmail.com') $password = (string)preg_replace('/\s+/', '', $password);
+            if (!$command(base64_encode($password), [235])) return $fail('SMTP-Anmeldung fehlgeschlagen. Bei Gmail ist in der Regel ein App-Passwort erforderlich.');
         }
         $from = $settings['from'] !== '' ? $settings['from'] : $username;
-        if (!filter_var($from, FILTER_VALIDATE_EMAIL)) { fclose($socket); return false; }
-        if (!$command('MAIL FROM:<' . $from . '>', [250]) || !$command('RCPT TO:<' . $to . '>', [250, 251]) || !$command('DATA', [354])) { fclose($socket); return false; }
+        if (!filter_var($from, FILTER_VALIDATE_EMAIL)) return $fail('Die SMTP-Absenderadresse ist ungültig.');
+        if (!$command('MAIL FROM:<' . $from . '>', [250])) return $fail('SMTP-Absender wurde abgelehnt.');
+        if (!$command('RCPT TO:<' . $to . '>', [250, 251])) return $fail('SMTP-Empfänger wurde abgelehnt.');
+        if (!$command('DATA', [354])) return $fail('SMTP-Server hat die Nachrichtendaten abgelehnt.');
         [$headers, $messageBody] = self::composeMessage($from, $to, $subject, $text, $html, true);
         $dotSafeBody = preg_replace('/(?m)^\./', '..', $messageBody);
         $payload = implode("\r\n", $headers) . "\r\n\r\n" . $dotSafeBody;
         fwrite($socket, $payload . "\r\n.\r\n");
-        $success = (int)substr($read(), 0, 3) === 250;
+        $lastResponse = $read();
+        $success = (int)substr($lastResponse, 0, 3) === 250;
+        if (!$success) self::$lastError = 'SMTP-Server hat die fertige Nachricht abgelehnt.' . self::smtpResponseSuffix($lastResponse);
         $command('QUIT', [221]);
         fclose($socket);
         return $success;
+    }
+
+    /** Converts a multiline SMTP reply into a short, safe diagnostic suffix. */
+    private static function smtpResponseSuffix(string $response): string
+    {
+        $response = trim((string)preg_replace('/\s+/', ' ', $response));
+        if ($response === '') return '';
+        return ' SMTP: ' . substr($response, 0, 500);
     }
 
     /**

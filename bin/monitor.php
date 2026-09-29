@@ -35,6 +35,9 @@ try {
         'started' => $startedAt,
         'heartbeat' => $startedAt,
     ]);
+    // SELECT * intentionally includes alert_monitoring_enabled. Passing the
+    // persisted per-switch flag to AlertService is required so the UI toggle
+    // and the background worker always use the same source of truth.
     $switches = $db->query('SELECT * FROM switches ORDER BY name')->fetchAll();
 
     // Prüft jeden Switch einzeln, damit ein Gerätefehler den restlichen Lauf nicht beendet.

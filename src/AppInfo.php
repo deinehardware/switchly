@@ -11,10 +11,10 @@ declare(strict_types=1);
 final class AppInfo
 {
     public const NAME = 'Switchly';
-    public const VERSION = '1.4.7';
+    public const VERSION = '1.4.8';
     public const CHANNEL = 'Beta';
-    public const DISPLAY_VERSION = 'v1.4.7 Beta';
-    public const USER_AGENT = 'Switchly/1.4.7-beta';
+    public const DISPLAY_VERSION = 'v1.4.8 Beta';
+    public const USER_AGENT = 'Switchly/1.4.8-beta';
 
     /** @return array{name: string, version: string, channel: string, display_version: string} */
     public static function publicInfo(): array
