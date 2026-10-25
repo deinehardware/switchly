@@ -7,7 +7,7 @@
 
 # Switchly
 
-[![Version](https://img.shields.io/badge/version-v1.4.8_Beta-6d5dfc?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v1.4.9_Beta-6d5dfc?style=for-the-badge)](CHANGELOG.md)
 [![PHP](https://img.shields.io/badge/PHP-8.5-777bb4?style=for-the-badge&logo=php&logoColor=white)](Dockerfile)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?style=for-the-badge&logo=docker&logoColor=white)](#docker-compose-empfohlen)
 [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-64748b?style=for-the-badge&logo=gnu&logoColor=white)](LICENSE)
@@ -15,7 +15,7 @@
 Switchly ist ein selbst gehostetes Control Panel für das Monitoring und die Verwaltung von MikroTik-Switches mit SwitchOS. Eine kompakte Lösung für kleine und mittlere Switch-Umgebungen.
 
 > [!IMPORTANT]
-> **v1.4.8 Beta** ist eine Vorabversion. Reboot, Restore sowie VLAN-, LAG- und Portänderungen wirken unmittelbar auf das Gerät. Erstelle vorher ein Backup und teste Änderungen zuerst an einem Test-Switch.
+> **v1.4.9 Beta** ist eine Vorabversion. Reboot, Restore sowie VLAN-, LAG- und Portänderungen wirken unmittelbar auf das Gerät. Erstelle vorher ein Backup und teste Änderungen zuerst an einem Test-Switch.
 
 ## Funktionen
 
@@ -42,12 +42,14 @@ Voraussetzungen: Docker Engine, Docker Compose v2 und Netzwerkzugriff zu den Swi
 
 ```bash
 cp .env.example .env
+openssl rand -base64 32
 ```
 
 Optional kannst du in `.env` ein initiales Admin-Passwort mit mindestens 12 Zeichen festlegen:
 
 ```env
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<Ausgabe des vorherigen Befehls>
 ```
 
 Danach starten:
@@ -69,7 +71,7 @@ docker compose logs switchly
 
 ```bash
 cp .env.example .env
-docker build --pull -t switchly:1.4.8-beta .
+docker build --pull -t switchly:1.4.9-beta .
 docker volume create switchly_data
 docker run -d \
   --name switchly \
@@ -83,7 +85,7 @@ docker run -d \
   -e SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite \
   -p 8080:8080 \
   -v switchly_data:/var/lib/switchly \
-  switchly:1.4.8-beta
+  switchly:1.4.9-beta
 ```
 
 Bei der Docker CLI wird der Host-Port direkt mit `-p` festgelegt. `SWITCHLY_HTTP_PORT` gilt nur für Docker Compose.
@@ -133,6 +135,7 @@ TZ=Europe/Berlin
 SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite
 SWITCHLY_ADMIN_USER=admin
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<Ausgabe von openssl rand -base64 32>
 SWITCHLY_BASE_URL=
 
 SWITCHLY_MONITOR_ENABLED=1
@@ -176,6 +179,9 @@ Datei `/etc/apache2/sites-available/switchly.conf`:
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "same-origin"
+    Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self'"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
 
     ErrorLog ${APACHE_LOG_DIR}/switchly-error.log
     CustomLog ${APACHE_LOG_DIR}/switchly-access.log combined
@@ -300,6 +306,8 @@ Beim ersten Start erzeugt Switchly automatisch die SQLite-Datenbank und das Admi
 | `SWITCHLY_DB_PATH`            | Docker-intern gesetzt  | Pfad der SQLite-Datenbank                                             |     |
 | `SWITCHLY_ADMIN_USER`         | `admin`                | Benutzer einer neuen Installation                                     |     |
 | `SWITCHLY_ADMIN_PASSWORD`     | leer                   | optionales Initialpasswort; leer erzeugt ein sicheres Zufallspasswort |     |
+| `SWITCHLY_SECRET_KEY`         | erforderlich           | dauerhafter 32-Byte-Schlüssel für verschlüsselte Zugangsdaten         |     |
+| `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS` | `0`          | private OIDC-/Webhook-Ziele ausdrücklich erlauben                     |     |
 | `SWITCHLY_BASE_URL`           | automatische Erkennung | öffentliche Basis-URL                                                 |     |
 | `SWITCHLY_MONITOR_ENABLED`    | `1`                    | Hintergrund-Monitoring aktivieren                                     |     |
 | `SWITCHLY_MONITOR_INTERVAL`   | `60`                   | Worker-Intervall in Sekunden                                          |     |
@@ -331,12 +339,13 @@ Im Health-JSON bestätigt `status: "ok"` die Webanwendung. Zusätzlich sollte `b
 
 ```bash
 docker compose stop
+install -m 600 .env "$PWD/switchly-env-$(date +%F).backup"
 docker run --rm -v switchly_data:/source:ro -v "$PWD:/backup" alpine:3.22 \
   tar -czf "/backup/switchly-backup-$(date +%F).tar.gz" -C /source .
 docker compose start
 ```
 
-Die Sicherung enthält Secrets und muss vertraulich behandelt werden. Bare-Metal-Backup und Restore sind in der [Betriebsdokumentation](docs/operations.md) beschrieben.
+Die `.env` mit `SWITCHLY_SECRET_KEY` ist für die Wiederherstellung zwingend erforderlich. Beide Sicherungen müssen vertraulich behandelt werden. Bare-Metal-Backup und Restore sind in der [Betriebsdokumentation](docs/operations.md) beschrieben.
 
 ### Docker-Update
 
@@ -448,7 +457,7 @@ Switchly wird unter der [GNU General Public License Version 3](LICENSE) veröffe
 
 # Switchly
 
-[![Version](https://img.shields.io/badge/version-v1.4.8_Beta-6d5dfc?style=for-the-badge)](CHANGELOG.md#english)
+[![Version](https://img.shields.io/badge/version-v1.4.9_Beta-6d5dfc?style=for-the-badge)](CHANGELOG.md#english)
 [![PHP](https://img.shields.io/badge/PHP-8.5-777bb4?style=for-the-badge&logo=php&logoColor=white)](Dockerfile)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?style=for-the-badge&logo=docker&logoColor=white)](#en-docker-compose-recommended)
 [![License](https://img.shields.io/badge/License-GPL--3.0-64748b?style=for-the-badge&logo=gnu&logoColor=white)](LICENSE)
@@ -456,7 +465,7 @@ Switchly wird unter der [GNU General Public License Version 3](LICENSE) veröffe
 Switchly is a self-hosted network control center for monitoring and managing MikroTik switches with SwitchOS. A responsive web interface, SQLite and an independent background worker form a compact solution for small and medium switch environments.
 
 > [!IMPORTANT]
-> **v1.4.8 Beta** is a pre-release version. Reboots, restores, and changes to VLANs, LAGs, or ports take effect immediately on the device. Create a backup first and test changes on a non-production switch.
+> **v1.4.9 Beta** is a pre-release version. Reboots, restores, and changes to VLANs, LAGs, or ports take effect immediately on the device. Create a backup first and test changes on a non-production switch.
 
 <a id="en-functions"></a>
 
@@ -489,12 +498,14 @@ Requirements: Docker Engine, Docker Compose v2 and network access to the switche
 
 ```bash
 cp .env.example .env
+openssl rand -base64 32
 ```
 
 Optionally set an initial administrator password containing at least 12 characters in `.env`:
 
 ```env
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<output of the previous command>
 ```
 
 Then start:
@@ -518,7 +529,7 @@ docker compose logs switchly
 
 ```bash
 cp .env.example .env
-docker build --pull -t switchly:1.4.8-beta .
+docker build --pull -t switchly:1.4.9-beta .
 docker volume create switchly_data
 docker run -d \
   --name switchly \
@@ -532,7 +543,7 @@ docker run -d \
   -e SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite \
   -p 8080:8080 \
   -v switchly_data:/var/lib/switchly \
-  switchly:1.4.8-beta
+  switchly:1.4.9-beta
 ```
 
 With Docker CLI, set the host port directly using `-p`. `SWITCHLY_HTTP_PORT` applies only to Docker Compose.
@@ -588,6 +599,7 @@ TZ=Europe/Berlin
 SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite
 SWITCHLY_ADMIN_USER=admin
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<output of openssl rand -base64 32>
 SWITCHLY_BASE_URL=
 
 SWITCHLY_MONITOR_ENABLED=1
@@ -633,6 +645,9 @@ File `/etc/apache2/sites-available/switchly.conf`:
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "same-origin"
+    Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self'"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
 
     ErrorLog ${APACHE_LOG_DIR}/switchly-error.log
     CustomLog ${APACHE_LOG_DIR}/switchly-access.log combined
@@ -765,6 +780,8 @@ On first startup, Switchly creates the SQLite database and administrator account
 | `SWITCHLY_DB_PATH` | Docker internally set | Path of the SQLite database |
 | `SWITCHLY_ADMIN_USER` | `admin` | User of a new installation |
 | `SWITCHLY_ADMIN_PASSWORD` | empty | Optional initial password; an empty value generates a secure random password |
+| `SWITCHLY_SECRET_KEY` | required | Persistent 32-byte key used to encrypt stored credentials |
+| `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS` | `0` | Explicitly allow private OIDC and webhook targets |
 | `SWITCHLY_BASE_URL` | Automatic detection | Basic public URL |
 | `SWITCHLY_MONITOR_ENABLED` | `1` | Activate background monitoring |
 | `SWITCHLY_MONITOR_INTERVAL` | `60` | Worker intervals in seconds |
@@ -802,12 +819,13 @@ Confirmed in Health-JSON `status: "ok"` the web application. In addition, `backg
 
 ```bash
 docker compose stop
+install -m 600 .env "$PWD/switchly-env-$(date +%F).backup"
 docker run --rm -v switchly_data:/source:ro -v "$PWD:/backup" alpine:3.22 \
   tar -czf "/backup/switchly-backup-$(date +%F).tar.gz" -C /source .
 docker compose start
 ```
 
-The backup contains secrets and must be treated as confidential. Bare-metal backup and restore procedures are described in the [operations guide](docs/operations.md#english).
+The `.env` file containing `SWITCHLY_SECRET_KEY` is mandatory for recovery. Treat both backups as confidential. Bare-metal backup and restore procedures are described in the [operations guide](docs/operations.md#english).
 
 <a id="en-docker-update"></a>
 

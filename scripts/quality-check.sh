@@ -11,6 +11,8 @@ if command -v php >/dev/null 2>&1; then
     if ! find . -type f -name '*.php' -not -path './data/*' -exec php -l {} \; >/dev/null; then
         failures=$((failures + 1))
     fi
+    printf '%s\n' 'Security-Regressionen prüfen …'
+    php tests/security-regression.php || failures=$((failures + 1))
 else
     printf '%s\n' 'Hinweis: PHP ist nicht installiert; PHP-Syntaxprüfung übersprungen.'
 fi
@@ -57,7 +59,7 @@ fi
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     printf '%s\n' 'Docker-Compose-Konfiguration prüfen …'
-    docker compose config --quiet || failures=$((failures + 1))
+    SWITCHLY_SECRET_KEY="${SWITCHLY_SECRET_KEY:-quality-check-placeholder}" docker compose config --quiet || failures=$((failures + 1))
 else
     printf '%s\n' 'Hinweis: Docker Compose ist nicht installiert; Compose-Prüfung übersprungen.'
 fi
@@ -81,6 +83,13 @@ printf '%s\n' 'Webroot und lokale Bibliotheken prüfen …'
 grep -q 'DocumentRoot /var/www/html/public' deploy/docker/apache/000-default.conf || failures=$((failures + 1))
 grep -q '^USER www-data:www-data$' Dockerfile || failures=$((failures + 1))
 grep -q '^EXPOSE 8080$' Dockerfile || failures=$((failures + 1))
+grep -q '^FROM php:8.5.12-apache-trixie$' Dockerfile || failures=$((failures + 1))
+grep -q 'SWITCHLY_SECRET_KEY' docker-compose.yml || failures=$((failures + 1))
+grep -q 'Content-Security-Policy' deploy/docker/apache/000-default.conf || failures=$((failures + 1))
+grep -q 'Content-Security-Policy' deploy/bare-metal/apache-switchly.conf || failures=$((failures + 1))
+grep -q 'class SecretStore' src/SecretStore.php || failures=$((failures + 1))
+grep -q 'class LoginRateLimiter' src/LoginRateLimiter.php || failures=$((failures + 1))
+grep -q 'class NetworkPolicy' src/NetworkPolicy.php || failures=$((failures + 1))
 if grep -q 'docker-php-ext-install' Dockerfile; then
     printf '%s\n' '  Bereits enthaltene PHP-Erweiterungen werden unnötig neu kompiliert.' >&2
     failures=$((failures + 1))

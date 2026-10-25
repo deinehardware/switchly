@@ -3,6 +3,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/TOTP.php';
+require_once __DIR__ . '/SecretStore.php';
+require_once __DIR__ . '/LoginRateLimiter.php';
 
 /**
  * Handles local authentication, the optional second factor and PHP sessions.
@@ -66,20 +68,31 @@ class Auth
     /**
      * Verifies primary credentials.
      *
-     * @return 'success'|'2fa'|'email_unverified'|'failed'
+     * @return 'success'|'2fa'|'email_unverified'|'failed'|'rate_limited'
      */
     public static function login(string $username, string $password): string
     {
         self::startSession();
+        if (LoginRateLimiter::retryAfter('password', $username) > 0) {
+            Logger::warning('LOGIN_RATE_LIMITED', 'Zu viele Anmeldeversuche; Anmeldung vorübergehend gesperrt.', $username);
+            return 'rate_limited';
+        }
         $db = Database::getConnection();
         $stmt = $db->prepare('SELECT * FROM users WHERE username = :user');
         $stmt->execute(['user' => $username]);
         $user = $stmt->fetch();
+        // Verify against a real hash even for an unknown username so account
+        // existence is not exposed through a cheap timing difference.
+        $dummyHash = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
+        $passwordValid = password_verify($password, (string)($user['password_hash'] ?? $dummyHash));
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        if (!$user || !$passwordValid) {
+            LoginRateLimiter::recordFailure('password', $username);
             Logger::warning('LOGIN_FAILED', 'Fehlgeschlagene Anmeldung für Benutzer ' . $username, $username);
             return 'failed';
         }
+        LoginRateLimiter::clear('password', $username);
+        $user = SecretStore::decryptUser($user);
 
         if (!empty($user['email']) && empty($user['email_verified_at'])) {
             Logger::warning('LOGIN_EMAIL_UNVERIFIED', 'Anmeldung mit unbestätigter E-Mail-Adresse.', $user['username']);
@@ -98,23 +111,29 @@ class Auth
         return 'success';
     }
 
-    /** Completes a pending login when the supplied TOTP code is valid. */
-    public static function verifyPending2FA(string $code): bool
+    /** Completes a pending login and reports failures without allowing brute force. */
+    public static function verifyPending2FA(string $code): string
     {
         self::startSession();
-        if (empty($_SESSION['pending_2fa']) || empty($_SESSION['pending_user_id'])) return false;
+        if (empty($_SESSION['pending_2fa']) || empty($_SESSION['pending_user_id'])) return 'failed';
+        $identity = (string)($_SESSION['pending_username'] ?? $_SESSION['pending_user_id']);
+        if (LoginRateLimiter::retryAfter('totp', $identity) > 0) return 'rate_limited';
         $db = Database::getConnection();
         $stmt = $db->prepare('SELECT * FROM users WHERE id = :id');
         $stmt->execute(['id' => (int)$_SESSION['pending_user_id']]);
         $user = $stmt->fetch();
-        if (!$user || empty($user['two_factor_enabled']) || empty($user['two_factor_secret'])) return false;
+        if (!$user) return 'failed';
+        $user = SecretStore::decryptUser($user);
+        if (empty($user['two_factor_enabled']) || empty($user['two_factor_secret'])) return 'failed';
         if (!TOTP::verify($user['two_factor_secret'], $code)) {
+            LoginRateLimiter::recordFailure('totp', $identity);
             Logger::warning('LOGIN_2FA_FAILED', 'Ungültiger 2FA-Code.', $user['username']);
-            return false;
+            return 'failed';
         }
+        LoginRateLimiter::clear('totp', $identity);
         self::completeLogin($user);
         Logger::info('LOGIN_2FA_SUCCESS', '2FA-Anmeldung erfolgreich.', $user['username']);
-        return true;
+        return 'success';
     }
 
     /**
@@ -130,6 +149,7 @@ class Auth
         $stmt->execute(['id' => $userId]);
         $user = $stmt->fetch();
         if (!$user) throw new RuntimeException('Das mit SSO verknüpfte Benutzerkonto wurde nicht gefunden.');
+        $user = SecretStore::decryptUser($user);
 
         if (!empty($user['two_factor_enabled']) && !empty($user['two_factor_secret'])) {
             $_SESSION['pending_2fa'] = true;

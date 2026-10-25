@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/SecretStore.php';
+
 /**
  * Owns the process-wide SQLite connection and idempotent schema migrations.
  *
@@ -47,6 +49,7 @@ final class Database
     private static function ensureSchema(): void
     {
         $db = self::$pdo;
+        SecretStore::assertConfigured();
 
         $db->exec("CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -328,5 +331,52 @@ final class Database
             last_alert_at INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (switch_id) REFERENCES switches(id) ON DELETE CASCADE
         )");
+
+        $db->exec("CREATE TABLE IF NOT EXISTS auth_rate_limits (
+            rate_key TEXT PRIMARY KEY,
+            category TEXT NOT NULL,
+            failures INTEGER NOT NULL DEFAULT 0,
+            window_started_at INTEGER NOT NULL,
+            last_failure_at INTEGER NOT NULL,
+            blocked_until INTEGER NOT NULL DEFAULT 0
+        )");
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_auth_rate_limits_expiry ON auth_rate_limits(last_failure_at)');
+
+        self::migrateSecrets();
+    }
+
+    /** Encrypts legacy plaintext credentials atomically during the first upgraded start. */
+    private static function migrateSecrets(): void
+    {
+        $db = self::$pdo;
+        $targets = [
+            ['users', 'id', ['two_factor_secret']],
+            ['switches', 'id', ['password']],
+            ['oidc_settings', 'id', ['client_secret']],
+            ['alert_settings', 'id', ['webhook_secret', 'smtp_password', 'gmail_client_secret', 'gmail_refresh_token']],
+        ];
+        $db->beginTransaction();
+        try {
+            foreach ($targets as [$table, $idColumn, $fields]) {
+                foreach ($db->query('SELECT ' . $idColumn . ',' . implode(',', $fields) . ' FROM ' . $table)->fetchAll() as $row) {
+                    foreach ($fields as $field) {
+                        $value = (string)($row[$field] ?? '');
+                        if ($value === '' || SecretStore::isEncrypted($value)) continue;
+                        $context = match ($table) {
+                            'users' => 'users:' . $row[$idColumn] . ':two_factor_secret',
+                            'switches' => 'switches:' . $row[$idColumn] . ':password',
+                            'oidc_settings' => 'oidc:1:client_secret',
+                            default => 'alerts:1:' . $field,
+                        };
+                        $stmt = $db->prepare('UPDATE ' . $table . ' SET ' . $field . '=:value WHERE ' . $idColumn . '=:id');
+                        $stmt->execute(['value' => SecretStore::encrypt($value, $context), 'id' => $row[$idColumn]]);
+                    }
+                }
+            }
+            $db->commit();
+        } catch (Throwable $error) {
+            if ($db->inTransaction()) $db->rollBack();
+            throw $error;
+        }
     }
 }

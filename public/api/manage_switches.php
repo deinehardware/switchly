@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../src/Api.php';
 require_once __DIR__ . '/../../src/Logger.php';
+require_once __DIR__ . '/../../src/SecretStore.php';
+require_once __DIR__ . '/../../src/NetworkPolicy.php';
 
 Api::bootstrap();
 $user = Api::requirePermission('switches.manage');
@@ -32,6 +34,7 @@ try {
         if ($id === '' || $name === '' || $host === '') throw new RuntimeException('ID, Name und IP/Host sind Pflichtfelder.');
         if ($port < 1 || $port > 65535) throw new RuntimeException('Der Port muss zwischen 1 und 65535 liegen.');
         if (!preg_match('/^[a-zA-Z0-9._:-]+$/', $host)) throw new RuntimeException('Host/IP enthält ungültige Zeichen.');
+        NetworkPolicy::requireSwitchHost($host);
         $exists = $db->prepare('SELECT 1 FROM switches WHERE id = :id');
         $exists->execute(['id' => $id]);
         if ($exists->fetchColumn()) Api::requireSwitchAccess($user, $id);
@@ -47,7 +50,7 @@ try {
                 alert_monitoring_enabled = excluded.alert_monitoring_enabled");
         $stmt->execute([
             'id' => $id, 'name' => $name, 'host' => $host, 'port' => $port,
-            'username' => $username, 'password' => $password,
+            'username' => $username, 'password' => SecretStore::encrypt($password, 'switches:' . $id . ':password'),
             'alert_monitoring_enabled' => $alertMonitoringEnabled,
         ]);
         Logger::switchEvent('INFO', 'SWITCH_SAVED', 'Switch ' . $id . ' wurde gespeichert.', $id);

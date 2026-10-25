@@ -6,6 +6,8 @@ require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/EmailService.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/AppInfo.php';
+require_once __DIR__ . '/SecretStore.php';
+require_once __DIR__ . '/NetworkPolicy.php';
 
 /**
  * Maintains per-switch alert state and delivers e-mail or webhook messages.
@@ -23,7 +25,7 @@ final class AlertService
     public static function settings(): array
     {
         $row = Database::getConnection()->query('SELECT * FROM alert_settings WHERE id = 1')->fetch();
-        return $row ?: [];
+        return $row ? SecretStore::decryptAlertSettings($row) : [];
     }
 
     /**
@@ -43,6 +45,7 @@ final class AlertService
         if ($webhookUrl !== '') {
             if (!filter_var($webhookUrl, FILTER_VALIDATE_URL) || !in_array(strtolower((string)parse_url($webhookUrl, PHP_URL_SCHEME)), ['http', 'https'], true)) throw new RuntimeException('Webhook muss eine gültige HTTP- oder HTTPS-URL sein.');
             if ((string)parse_url($webhookUrl, PHP_URL_USER) !== '' || (string)parse_url($webhookUrl, PHP_URL_PASS) !== '') throw new RuntimeException('Zugangsdaten dürfen nicht Bestandteil der Webhook-URL sein.');
+            NetworkPolicy::requireIntegrationUrl($webhookUrl, true, 'Webhook-URL');
         }
         $threshold = max(1, min(10, (int)($values['failure_threshold'] ?? 2)));
         $cooldown = max(1, min(1440, (int)($values['cooldown_minutes'] ?? 30)));
@@ -86,7 +89,7 @@ final class AlertService
             'recipients' => implode(', ', $recipients),
             'webhook_enabled' => $webhookEnabled ? 1 : 0,
             'url' => $webhookUrl,
-            'secret' => trim((string)($values['webhook_secret'] ?? '')),
+            'secret' => SecretStore::encrypt(trim((string)($values['webhook_secret'] ?? '')), 'alerts:1:webhook_secret'),
             'recovery' => !empty($values['recovery_enabled']) ? 1 : 0,
             'threshold' => $threshold,
             'cooldown' => $cooldown,
@@ -94,11 +97,11 @@ final class AlertService
             'smtp_port' => $smtpPort,
             'smtp_secure' => $smtpSecure,
             'smtp_username' => $smtpUsername,
-            'smtp_password' => (string)($values['smtp_password'] ?? ''),
+            'smtp_password' => SecretStore::encrypt((string)($values['smtp_password'] ?? ''), 'alerts:1:smtp_password'),
             'smtp_from' => $smtpFrom,
             'gmail_enabled' => $gmailEnabled ? 1 : 0,
             'gmail_client_id' => $gmailClientId,
-            'gmail_client_secret' => $gmailClientSecret,
+            'gmail_client_secret' => SecretStore::encrypt($gmailClientSecret, 'alerts:1:gmail_client_secret'),
             'gmail_sender' => $gmailSender,
         ]);
 
@@ -230,6 +233,13 @@ final class AlertService
     private static function sendWebhook(string $url, string $secret, array $switch, bool $online, string $detail): bool
     {
         self::$lastWebhookError = '';
+        try {
+            $resolve = NetworkPolicy::curlResolve($url, true, 'Webhook-URL');
+        } catch (Throwable $error) {
+            self::$lastWebhookError = $error->getMessage();
+            Logger::warning('WEBHOOK_DELIVERY_BLOCKED', self::$lastWebhookError);
+            return false;
+        }
         $host = strtolower((string)parse_url($url, PHP_URL_HOST));
         $isDiscord = $host === 'discord.com' || str_ends_with($host, '.discord.com') || $host === 'discordapp.com' || str_ends_with($host, '.discordapp.com');
         $event = $online ? 'switch.recovered' : 'switch.down';
@@ -285,6 +295,7 @@ final class AlertService
         }
         $ch = curl_init($url);
         $options = [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload, CURLOPT_HTTPHEADER => $headers, CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => 15, CURLOPT_FOLLOWLOCATION => false, CURLOPT_ENCODING => ''];
+        if ($resolve !== []) $options[CURLOPT_RESOLVE] = $resolve;
         if (defined('CURLOPT_PROTOCOLS')) $options[CURLOPT_PROTOCOLS] = CURLPROTO_HTTP | CURLPROTO_HTTPS;
         curl_setopt_array($ch, $options);
         $response = curl_exec($ch);

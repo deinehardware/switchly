@@ -21,7 +21,7 @@
 <details>
 <summary><strong>Welches Passwort verwende ich beim ersten Login?</strong></summary>
 
-Benutzername und Passwort stammen aus `SWITCHLY_ADMIN_USER` und `SWITCHLY_ADMIN_PASSWORD` in deiner `.env`. Das initiale Passwort muss mindestens 12 Zeichen lang sein und wird nur beim Erzeugen einer leeren Datenbank verwendet.
+Der Benutzername stammt aus `SWITCHLY_ADMIN_USER`. Ein gesetztes `SWITCHLY_ADMIN_PASSWORD` muss mindestens 12 Zeichen lang sein; bleibt es leer, wird beim Erzeugen einer leeren Datenbank ein sicheres Passwort generiert und einmalig im Log ausgegeben.
 
 ```env
 SWITCHLY_ADMIN_USER=admin
@@ -31,11 +31,12 @@ SWITCHLY_ADMIN_PASSWORD=EIN-LANGES-ZUFAELLIGES-PASSWORT
 </details>
 
 <details>
-<summary><strong>Warum startet Docker nicht und verlangt SWITCHLY_ADMIN_PASSWORD?</strong></summary>
+<summary><strong>Warum startet Docker nicht und verlangt SWITCHLY_SECRET_KEY?</strong></summary>
 
-Switchly besitzt absichtlich kein Standardpasswort. Öffne `.env`, setze `SWITCHLY_ADMIN_PASSWORD` und starte den Container erneut:
+Der dauerhafte Schlüssel schützt gespeicherte Geräte-, SMTP-, OAuth- und TOTP-Geheimnisse. Erzeuge ihn einmalig, trage die Ausgabe in `.env` ein und sichere sie zusammen mit der Datenbank:
 
 ```bash
+openssl rand -base64 32
 docker compose up -d --build
 ```
 
@@ -252,7 +253,7 @@ Die Implementierung zielt insbesondere auf Mikrotik CSS-326-24G-2S+RM | Mikrotik
 <details>
 <summary><strong>What password do I use for the first login?</strong></summary>
 
-Username and password come from `SWITCHLY_ADMIN_USER` and `SWITCHLY_ADMIN_PASSWORD` in your `.env`. The initial password must be at least 12 characters long and is only used when creating an empty database.
+The username comes from `SWITCHLY_ADMIN_USER`. A configured `SWITCHLY_ADMIN_PASSWORD` must contain at least 12 characters; when left empty, a secure password is generated for an empty database and printed once to the log.
 
 ```env
 SWITCHLY_ADMIN_USER=admin
@@ -262,11 +263,12 @@ SWITCHLY_ADMIN_PASSWORD=A-LONG-RANDOM-PASSWORD
 </details>
 
 <details>
-<summary><strong>Why does Docker fail to start and request SWITCHLY_ADMIN_PASSWORD?</strong></summary>
+<summary><strong>Why does Docker fail to start and request SWITCHLY_SECRET_KEY?</strong></summary>
 
-Switchly intentionally has no default password. Open `.env`, set `SWITCHLY_ADMIN_PASSWORD`, and restart the container:
+The persistent key protects stored device, SMTP, OAuth, and TOTP secrets. Generate it once, place the output in `.env`, and back it up with the database:
 
 ```bash
+openssl rand -base64 32
 docker compose up -d --build
 ```
 

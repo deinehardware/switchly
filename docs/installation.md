@@ -17,12 +17,14 @@ Switchly unterstützt Docker Compose, die Docker CLI und einen direkten Betrieb 
 
 ```bash
 cp .env.example .env
+openssl rand -base64 32
 ```
 
 Optional ein eigenes Initialpasswort setzen; leer erzeugt Switchly ein sicheres Zufallspasswort:
 
 ```env
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<Ausgabe des vorherigen Befehls>
 ```
 
 Starten und prüfen:
@@ -34,12 +36,12 @@ docker compose logs switchly
 curl --fail http://127.0.0.1:8080/api/health.php
 ```
 
-Die SQLite-Datenbank bleibt im Docker-Volume `switchly_data` erhalten. Der Container läuft als `www-data` auf dem internen Port 8080, besitzt keine zusätzlichen Linux-Capabilities und verwendet ein schreibgeschütztes Root-Dateisystem. Das Image basiert auf `php:8.5-apache-bookworm`.
+Die SQLite-Datenbank bleibt im Docker-Volume `switchly_data` erhalten. Der Container läuft als `www-data` auf dem internen Port 8080, besitzt keine zusätzlichen Linux-Capabilities und verwendet ein schreibgeschütztes Root-Dateisystem. Das Image basiert auf `php:8.5.12-apache-trixie`.
 
 ## Docker CLI
 
 ```bash
-docker build --pull -t switchly:1.4.8-beta .
+docker build --pull -t switchly:1.4.9-beta .
 docker volume create switchly_data
 docker run -d \
   --name switchly \
@@ -53,7 +55,7 @@ docker run -d \
   -e SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite \
   -p 8080:8080 \
   -v switchly_data:/var/lib/switchly \
-  switchly:1.4.8-beta
+  switchly:1.4.9-beta
 ```
 
 ## Bare Metal
@@ -131,12 +133,14 @@ Switchly supports Docker Compose, Docker CLI, and direct deployment with Apache 
 
 ```bash
 cp .env.example .env
+openssl rand -base64 32
 ```
 
 Optionally set your own initial password. If left empty, Switchly generates a secure random password:
 
 ```env
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<output of the previous command>
 ```
 
 Start and check:
@@ -148,14 +152,14 @@ docker compose logs switchly
 curl --fail http://127.0.0.1:8080/api/health.php
 ```
 
-The SQLite database persists in the `switchly_data` Docker volume. The container runs as `www-data` on internal port 8080, has no additional Linux capabilities, and uses a read-only root filesystem. The image is based on `php:8.5-apache-bookworm`.
+The SQLite database persists in the `switchly_data` Docker volume. The container runs as `www-data` on internal port 8080, has no additional Linux capabilities, and uses a read-only root filesystem. The image is based on `php:8.5.12-apache-trixie`.
 
 <a id="en-docker-cli"></a>
 
 ## Docker CLI
 
 ```bash
-docker build --pull -t switchly:1.4.8-beta .
+docker build --pull -t switchly:1.4.9-beta .
 docker volume create switchly_data
 docker run -d \
   --name switchly \
@@ -169,7 +173,7 @@ docker run -d \
   -e SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite \
   -p 8080:8080 \
   -v switchly_data:/var/lib/switchly \
-  switchly:1.4.8-beta
+  switchly:1.4.9-beta
 ```
 
 <a id="en-bare-metal"></a>

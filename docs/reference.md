@@ -7,7 +7,7 @@
 
 <div align="center">
   <h1>Vollständige Dokumentation</h1>
-  <p><strong>Projektversion v1.4.8 Beta · Stand 7. September 2026</strong></p>
+  <p><strong>Projektversion v1.4.9 Beta · Stand 7. September 2026</strong></p>
 
   <p>
     <a href="../README.md">Projektübersicht</a> ·
@@ -115,6 +115,7 @@ Bearbeite anschließend `.env`. Ein eigenes Initialpasswort ist optional:
 ```env
 SWITCHLY_ADMIN_USER=admin
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<Ausgabe von openssl rand -base64 32>
 ```
 
 Die Variablen legen nur bei einer leeren Datenbank den initialen Benutzer an. Ist das Passwort leer, wird es sicher generiert und einmalig im Startprotokoll ausgegeben. Bei einer vorhandenen Datenbank ändert `.env` weder Passwort noch Rolle eines Kontos.
@@ -244,6 +245,7 @@ TZ=Europe/Berlin
 SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite
 SWITCHLY_ADMIN_USER=admin
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<Ausgabe von openssl rand -base64 32>
 SWITCHLY_BASE_URL=https://monitor.example.de
 SWITCHLY_MONITOR_ENABLED=1
 SWITCHLY_MONITOR_INTERVAL=60
@@ -300,6 +302,9 @@ Lege `/etc/apache2/sites-available/switchly.conf` an:
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "same-origin"
+    Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self'"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
 
     ErrorLog ${APACHE_LOG_DIR}/switchly-error.log
     CustomLog ${APACHE_LOG_DIR}/switchly-access.log combined
@@ -406,6 +411,8 @@ Die Anwendung kann Host, `X-Forwarded-Host`, `X-Forwarded-Proto` und gegebenenfa
 | `SWITCHLY_DB_PATH` | im Docker fest gesetzt | Pfad der SQLite-Datenbank |
 | `SWITCHLY_ADMIN_USER` | `admin` | Benutzername bei der erstmaligen Benutzeranlage |
 | `SWITCHLY_ADMIN_PASSWORD` | leer | optional; leer erzeugt ein sicheres Zufallspasswort |
+| `SWITCHLY_SECRET_KEY` | erforderlich | dauerhafter 32-Byte-Schlüssel für verschlüsselte Geheimnisse |
+| `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS` | `0` | private OIDC-/Webhook-Ziele ausdrücklich erlauben |
 | `SWITCHLY_BASE_URL` | leer | Öffentliche URL für Verifikationsmails |
 | `SWITCHLY_MONITOR_ENABLED` | `1` | Docker-Worker aktivieren und GUI-Status |
 | `SWITCHLY_MONITOR_INTERVAL` | `60` | Worker-Intervall in Sekunden, Minimum 15 |
@@ -559,9 +566,9 @@ Beispiel eines generischen Webhook-Payloads:
   "source": "Switchly",
   "application": {
     "name": "Switchly",
-    "version": "1.4.8",
+    "version": "1.4.9",
     "channel": "Beta",
-    "display_version": "v1.4.8 Beta"
+    "display_version": "v1.4.9 Beta"
   },
   "event": "switch.down",
   "timestamp": "2026-08-21T12:00:00+00:00",
@@ -705,7 +712,7 @@ SQLite verwendet WAL-Modus und einen Busy-Timeout. Wichtige Tabellen:
 | `user_switch_access` | direkte Switch-Freigaben |
 | `group_switch_access` | Switch-Freigaben für Gruppen |
 
-Passwörter lokaler Benutzer werden gehasht. Switch-Passwörter, OIDC-Client-Secret, TOTP-Secrets und Webhook-Secret müssen zur Laufzeit entschlüsselbar beziehungsweise direkt nutzbar sein und liegen daher in der SQLite-Datei. Die Datenbank und Backups sind als vertraulich zu behandeln.
+Passwörter lokaler Benutzer werden gehasht. Switch-Passwörter, SMTP-Passwörter, OAuth-Tokens, TOTP-Secrets und Webhook-Secrets werden in SQLite per AES-256-GCM verschlüsselt. Der getrennte `SWITCHLY_SECRET_KEY` ist zur Wiederherstellung zwingend erforderlich; Datenbank, Schlüssel und Backups bleiben vertraulich zu behandeln.
 
 ## 13. Backup und Restore des CMS
 
@@ -936,7 +943,7 @@ Beiträge und weitergegebene Änderungen unterliegen den Bedingungen der GPLv3. 
 
 <div align="center">
   <h1>Complete documentation</h1>
-  <p><strong>Project version v1.4.8 Beta · Last updated 7 September 2026</strong></p>
+  <p><strong>Project version v1.4.9 Beta · Last updated 7 September 2026</strong></p>
 
   <p>
     <a href="../README.md#english">Project overview</a> ·
@@ -1064,6 +1071,7 @@ Then edit `.env`. A custom initial administrator password is optional:
 ```env
 SWITCHLY_ADMIN_USER=admin
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<output of openssl rand -base64 32>
 ```
 
 These variables create the initial user only for an empty database. If the password is empty, Switchly generates it securely and prints it once to the startup log. For an existing database, `.env` changes neither the password nor the role of any account.
@@ -1212,6 +1220,7 @@ TZ=Europe/Berlin
 SWITCHLY_DB_PATH=/var/lib/switchly/database.sqlite
 SWITCHLY_ADMIN_USER=admin
 SWITCHLY_ADMIN_PASSWORD=
+SWITCHLY_SECRET_KEY=<output of openssl rand -base64 32>
 SWITCHLY_BASE_URL=https://monitor.example.de
 SWITCHLY_MONITOR_ENABLED=1
 SWITCHLY_MONITOR_INTERVAL=60
@@ -1270,6 +1279,9 @@ Create `/etc/apache2/sites-available/switchly.conf` with the following content:
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "same-origin"
+    Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; font-src 'self'"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
 
     ErrorLog ${APACHE_LOG_DIR}/switchly-error.log
     CustomLog ${APACHE_LOG_DIR}/switchly-access.log combined
@@ -1382,6 +1394,8 @@ The application can automatically evaluate `Host`, `X-Forwarded-Host`, `X-Forwar
 | `SWITCHLY_DB_PATH` | set by Docker | Path to the SQLite database |
 | `SWITCHLY_ADMIN_USER` | `admin` | Username for the initial administrator |
 | `SWITCHLY_ADMIN_PASSWORD` | empty | Optional; an empty value generates a secure random password |
+| `SWITCHLY_SECRET_KEY` | required | Persistent 32-byte key for encrypted secrets |
+| `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS` | `0` | Explicitly allow private OIDC and webhook targets |
 | `SWITCHLY_BASE_URL` | empty | Public URL used in verification emails |
 | `SWITCHLY_MONITOR_ENABLED` | `1` | Enable the Docker worker and its GUI status |
 | `SWITCHLY_MONITOR_INTERVAL` | `60` | Worker interval in seconds, minimum 15 |
@@ -1559,9 +1573,9 @@ Example generic webhook payload:
   "source": "Switchly",
   "application": {
     "name": "Switchly",
-    "version": "1.4.8",
+    "version": "1.4.9",
     "channel": "Beta",
-    "display_version": "v1.4.8 Beta"
+    "display_version": "v1.4.9 Beta"
   },
   "event": "switch.down",
   "timestamp": "2026-08-21T12:00:00+00:00",
@@ -1717,7 +1731,7 @@ SQLite uses WAL mode and a busy timeout. Important tables:
 | `user_switch_access` | Direct switch access assignments |
 | `group_switch_access` | Switch access assignments for groups |
 
-Local user passwords are hashed. Switch passwords, the OIDC client secret, TOTP secrets, and the webhook secret must be decryptable or directly usable at runtime and are therefore stored in the SQLite file. Treat the database and its backups as confidential.
+Local user passwords are hashed. Switch passwords, SMTP passwords, OAuth tokens, TOTP secrets, and webhook secrets are encrypted in SQLite with AES-256-GCM. The separate `SWITCHLY_SECRET_KEY` is mandatory for recovery; treat the database, key, and backups as confidential.
 
 <a id="en-13-backup-and-restore-the-cms"></a>
 

@@ -1,4 +1,5 @@
-FROM php:8.5-apache-bookworm
+# PHP 8.5.12 fixes CVE-2026-109618/109619; Trixie supplies Apache 2.4.69.
+FROM php:8.5.12-apache-trixie
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -6,7 +7,7 @@ LABEL org.opencontainers.image.title="Switchly" \
       org.opencontainers.image.description="Self-hosted Mikrotik SwitchOS Control Panel" \
       org.opencontainers.image.vendor="Switchly" \
       org.opencontainers.image.licenses="GPL-3.0-only" \
-      org.opencontainers.image.version="1.4.8-beta"
+      org.opencontainers.image.version="1.4.9-beta"
 
 # The official PHP 8.5 image already provides the required PHP modules.
 # Verify them instead of rebuilding them; rebuilding built-in modules can fail

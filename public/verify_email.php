@@ -18,17 +18,17 @@ $verified = EmailService::verify(trim((string)($_GET['token'] ?? '')));
   <meta name="theme-color" content="#0d1020">
   <meta name="application-name" content="<?= AppInfo::NAME ?>">
   <title>E-Mail bestätigen – <?= AppInfo::NAME ?> · <?= AppInfo::DISPLAY_VERSION ?></title>
-  <link rel="icon" href="assets/favicon.ico?v=1.4.8" sizes="any">
-  <link rel="icon" type="image/svg+xml" href="assets/switchly.svg?v=1.4.8">
-  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1.4.8">
-  <link rel="manifest" href="assets/site.webmanifest?v=1.4.8">
-  <link rel="stylesheet" href="assets/style.css?v=1.4.8">
+  <link rel="icon" href="assets/favicon.ico?v=1.4.9" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="assets/switchly.svg?v=1.4.9">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1.4.9">
+  <link rel="manifest" href="assets/site.webmanifest?v=1.4.9">
+  <link rel="stylesheet" href="assets/style.css?v=1.4.9">
 </head>
 <body class="auth-page">
   <div class="auth-card">
     <div class="auth-brand">
       <div class="logo-box">
-        <img class="brand-mark" src="assets/switchly-mark.svg?v=1.4.8" alt="Switchly" width="44" height="44">
+        <img class="brand-mark" src="assets/switchly-mark.svg?v=1.4.9" alt="Switchly" width="44" height="44">
       </div>
       <div>
         <h1><?= AppInfo::NAME ?></h1>

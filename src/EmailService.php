@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/SecretStore.php';
+
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/AppInfo.php';
@@ -293,6 +295,7 @@ final class EmailService
     private static function smtpSettings(): array
     {
         $row = Database::getConnection()->query('SELECT smtp_host,smtp_port,smtp_secure,smtp_username,smtp_password,smtp_from FROM alert_settings WHERE id=1')->fetch() ?: [];
+        $row['smtp_password'] = SecretStore::decrypt((string)($row['smtp_password'] ?? ''), 'alerts:1:smtp_password');
         return [
             'host' => trim((string)($row['smtp_host'] ?? '')),
             'port' => (int)($row['smtp_port'] ?? 587),

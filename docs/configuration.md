@@ -15,12 +15,16 @@ Docker Compose liest `.env`; Bare-Metal-Installationen verwenden standardmäßig
 | `SWITCHLY_DB_PATH` | Docker-intern gesetzt | absoluter Pfad zur SQLite-Datei |
 | `SWITCHLY_ADMIN_USER` | `admin` | initialer Administrator einer leeren Datenbank |
 | `SWITCHLY_ADMIN_PASSWORD` | leer | optionales Initialpasswort; leer erzeugt ein sicheres Zufallspasswort |
+| `SWITCHLY_SECRET_KEY` | erforderlich | Base64- oder Hex-kodierter 32-Byte-Schlüssel für gespeicherte Geheimnisse |
+| `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS` | `0` | private OIDC- und Webhook-Ziele erlauben; private Switch-Ziele sind immer erlaubt |
 | `SWITCHLY_BASE_URL` | automatische Erkennung | öffentliche URL ohne abschließenden Slash |
 | `SWITCHLY_MONITOR_ENABLED` | `1` | Hintergrundabfragen aktivieren |
 | `SWITCHLY_MONITOR_INTERVAL` | `60` | Abfrageintervall in Sekunden, mindestens 15 |
 | `SWITCHLY_LOG_RETENTION_DAYS` | `90` | automatische Aufbewahrung der Logs in Tagen |
 
 Veraltete Variablen aus Releases vor dem Switchly-Rebranding werden nicht mehr ausgewertet. Die Admin-Variablen werden nur beim Erzeugen einer leeren Datenbank verwendet. Ein späterer Wertwechsel setzt bestehende Konten nicht zurück.
+
+Erzeuge `SWITCHLY_SECRET_KEY` einmalig mit `openssl rand -base64 32` und sichere ihn zusammen mit dem Datenbank-Backup. Switch-, SMTP-, OAuth-, Webhook- und TOTP-Geheimnisse werden damit per AES-256-GCM verschlüsselt. Wird der Schlüssel geändert oder verloren, können vorhandene Geheimnisse nicht wiederhergestellt werden. Beim ersten Start nach dem Upgrade werden bestehende Klartextwerte automatisch und atomar migriert.
 
 ### Automatisch erzeugtes Admin-Passwort
 
@@ -123,12 +127,16 @@ Docker Compose reads `.env`; bare-metal installations use `/etc/switchly/switchl
 | `SWITCHLY_DB_PATH` | Set internally by Docker | Absolute path to the SQLite file |
 | `SWITCHLY_ADMIN_USER` | `admin` | Initial administrator of an empty database |
 | `SWITCHLY_ADMIN_PASSWORD` | empty | Optional initial password; an empty value generates a secure random password |
+| `SWITCHLY_SECRET_KEY` | required | Base64- or hex-encoded 32-byte key for stored secrets |
+| `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS` | `0` | Allow private OIDC and webhook targets; private switch targets remain allowed |
 | `SWITCHLY_BASE_URL` | Automatic detection | Public URL without a trailing slash |
 | `SWITCHLY_MONITOR_ENABLED` | `1` | Enable background polling |
 | `SWITCHLY_MONITOR_INTERVAL` | `60` | Polling interval in seconds; minimum 15 |
 | `SWITCHLY_LOG_RETENTION_DAYS` | `90` | Automatic log-retention period in days |
 
 Deprecated variables from releases before the Switchly rebranding are no longer evaluated. Administrator variables are used only when an empty database is initialized. Changing them later does not reset existing accounts.
+
+Generate `SWITCHLY_SECRET_KEY` once with `openssl rand -base64 32` and keep it with the database backup. Switch, SMTP, OAuth, webhook, and TOTP secrets are encrypted with AES-256-GCM. Existing secrets cannot be recovered if the key is changed or lost. On the first start after upgrading, legacy plaintext values are migrated automatically in one transaction.
 
 ### Automatically generated administrator password
 

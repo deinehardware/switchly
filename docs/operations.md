@@ -37,6 +37,7 @@ Docker:
 
 ```bash
 docker compose stop
+install -m 600 .env "$PWD/switchly-env-$(date +%F).backup"
 docker run --rm -v switchly_data:/source:ro -v "$PWD:/backup" alpine:3.22 \
   tar -czf "/backup/switchly-backup-$(date +%F).tar.gz" -C /source .
 docker compose start
@@ -53,7 +54,7 @@ sudo systemctl start apache2
 sudo systemctl start switchly-worker.timer
 ```
 
-Backups enthalten Zugangsdaten und Secrets und müssen verschlüsselt beziehungsweise zugriffsgeschützt gespeichert werden.
+Die gesicherte `.env` enthält den für eine Wiederherstellung zwingend erforderlichen `SWITCHLY_SECRET_KEY`. Datenbank und Schlüssel müssen gemeinsam, aber verschlüsselt beziehungsweise zugriffsgeschützt aufbewahrt werden.
 
 ## Updates
 
@@ -143,6 +144,7 @@ Docker:
 
 ```bash
 docker compose stop
+install -m 600 .env "$PWD/switchly-env-$(date +%F).backup"
 docker run --rm -v switchly_data:/source:ro -v "$PWD:/backup" alpine:3.22 \
   tar -czf "/backup/switchly-backup-$(date +%F).tar.gz" -C /source .
 docker compose start
@@ -159,7 +161,7 @@ sudo systemctl start apache2
 sudo systemctl start switchly-worker.timer
 ```
 
-Backups contain access data and secrets and must be stored encrypted or protected from access.
+The `.env` backup contains `SWITCHLY_SECRET_KEY`, which is mandatory for recovery. Keep the database and key together in encrypted or otherwise access-controlled backup storage.
 
 <a id="en-updates"></a>
 

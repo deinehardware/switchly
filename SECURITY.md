@@ -25,7 +25,9 @@ Zugangsdaten, Tokens, Datenbanken und personenbezogene Daten dürfen nicht in di
 
 ## Betriebsgrenzen
 
-Switchly speichert Switch-Zugangsdaten, TOTP-Secrets, OIDC-Client-Secrets und optionale Webhook-Secrets in der SQLite-Datenbank. Die Datenbank ist deshalb wie ein Secret zu behandeln. Die Kommunikation mit SwitchOS-Switches erfolgt üblicherweise per HTTP Digest und sollte ausschließlich in einem vertrauenswürdigen Management-Netz stattfinden.
+Switchly verschlüsselt Switch-Zugangsdaten, TOTP-Secrets, SMTP-Passwörter, OAuth-Tokens und optionale Webhook-Secrets in SQLite per AES-256-GCM. Der separate `SWITCHLY_SECRET_KEY` muss zusammen mit Backups sicher und dauerhaft verwahrt werden; die Datenbank bleibt dennoch vertraulich. Die Kommunikation mit SwitchOS-Switches erfolgt üblicherweise per HTTP Digest und sollte ausschließlich in einem vertrauenswürdigen Management-Netz stattfinden.
+
+Lokale Passwort- und TOTP-Anmeldungen besitzen getrennte temporäre Sperren pro Konto und Quell-IP. Ausgehende OIDC- und Webhook-Verbindungen blockieren standardmäßig private, Loopback-, Link-Local- und reservierte Ziele. Private Integrationsziele erfordern die bewusste Freigabe `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS=1`; private Management-Adressen für Switches bleiben zulässig.
 
 Der Docker-Container läuft als `www-data` ohne zusätzliche Linux-Capabilities, verwendet Port 8080 statt eines privilegierten Ports und besitzt ein schreibgeschütztes Root-Dateisystem. Nur das Daten-Volume und das temporäre Dateisystem sind beschreibbar. SMTP-Passwörter werden ausschließlich über die authentifizierte Oberfläche gesetzt und in API-Antworten immer redigiert.
 
@@ -62,6 +64,8 @@ Do not include credentials, tokens, databases, or personal data in the report. W
 
 ## Operational limits
 
-Switchly stores switch credentials, TOTP secrets, OIDC client secrets, and optional webhook secrets in its SQLite database. Treat the database as confidential. Communication with SwitchOS switches generally uses HTTP Digest and should take place only within a trusted management network.
+Switchly encrypts switch credentials, TOTP secrets, SMTP passwords, OAuth tokens, and optional webhook secrets in SQLite with AES-256-GCM. The separate `SWITCHLY_SECRET_KEY` must be retained securely with backups; the database should still be treated as confidential. Communication with SwitchOS switches generally uses HTTP Digest and should take place only within a trusted management network.
+
+Local password and TOTP authentication use separate temporary limits per account and source IP. Outbound OIDC and webhook connections block private, loopback, link-local, and reserved targets by default. Private integration targets require the explicit `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS=1` opt-in; private switch management addresses remain supported.
 
 The Docker container runs as `www-data` without additional Linux capabilities, listens on unprivileged port 8080, and uses a read-only root filesystem. Only the data volume and temporary filesystem are writable. SMTP passwords are configured exclusively through the authenticated interface and are always redacted from API responses.

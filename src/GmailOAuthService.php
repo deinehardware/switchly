@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/Database.php';
+require_once __DIR__ . '/SecretStore.php';
 
 /** Handles Google OAuth tokens and Gmail API message delivery. */
 final class GmailOAuthService
@@ -12,7 +13,10 @@ final class GmailOAuthService
     /** Returns stored Gmail OAuth configuration, including server-only secrets. */
     public static function settings(): array
     {
-        return Database::getConnection()->query('SELECT gmail_oauth_enabled,gmail_client_id,gmail_client_secret,gmail_refresh_token,gmail_sender FROM alert_settings WHERE id=1')->fetch() ?: [];
+        $settings = Database::getConnection()->query('SELECT gmail_oauth_enabled,gmail_client_id,gmail_client_secret,gmail_refresh_token,gmail_sender FROM alert_settings WHERE id=1')->fetch() ?: [];
+        $settings['gmail_client_secret'] = SecretStore::decrypt((string)($settings['gmail_client_secret'] ?? ''), 'alerts:1:gmail_client_secret');
+        $settings['gmail_refresh_token'] = SecretStore::decrypt((string)($settings['gmail_refresh_token'] ?? ''), 'alerts:1:gmail_refresh_token');
+        return $settings;
     }
 
     /** Returns whether Gmail OAuth is selected and fully authorized. */

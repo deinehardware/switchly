@@ -11,16 +11,54 @@
 
 Diese Datei dokumentiert die offiziellen Veröffentlichungen von Switchly.
 
+## [1.4.9-beta] – 2026-10-25
+
+### Geändert
+
+- Das Container-Image verwendet jetzt PHP 8.5.12 auf Debian Trixie mit Apache 2.4.69.
+- Für die Verschlüsselung gespeicherter Zugangsdaten ist die neue Umgebungsvariable `SWITCHLY_SECRET_KEY` erforderlich.
+- Die Installations-, Konfigurations-, Betriebs- und Sicherheitsdokumentation wurde an die neuen Schutzmaßnahmen angepasst.
+- Backups müssen neben der SQLite-Datenbank auch die `.env` mit dem zugehörigen `SWITCHLY_SECRET_KEY` enthalten.
+
+### Behoben
+
+- Vorhandene unverschlüsselte Switch-, SMTP-, OAuth-, Webhook- und TOTP-Geheimnisse werden beim ersten Start nach dem Upgrade automatisch und innerhalb einer Datenbanktransaktion verschlüsselt.
+- DNS-Antworten ausgehender OIDC- und Webhook-Verbindungen werden validiert und an die jeweilige cURL-Anfrage gebunden. Dadurch werden DNS-Rebinding-Angriffe erschwert.
+- Die Anmeldung verwendet auch bei unbekannten Benutzern einen Passworthash-Vergleich, um Rückschlüsse auf vorhandene Konten anhand unterschiedlicher Antwortzeiten zu verhindern.
+- Veraltete oder widersprüchliche Hinweise zur Speicherung von Geheimnissen wurden in der Dokumentation korrigiert.
+
+### Sicherheit
+
+- PHP wurde auf Version 8.5.12 aktualisiert, um unter anderem `CVE-2026-109618` und `CVE-2026-109619` zu beheben.
+- Apache wurde auf Version 2.4.69 aktualisiert, um bekannte Schwachstellen wie `CVE-2026-57941`, `CVE-2026-56154` und `CVE-2026-59797` zu beheben.
+- Gespeicherte Geräte-, SMTP-, OAuth-, Webhook- und TOTP-Geheimnisse werden per AES-256-GCM verschlüsselt und gegen unbemerkte Veränderungen geschützt.
+- Temporäre Login- und TOTP-Sperren pro Konto und Quell-IP verhindern unbegrenzte Brute-Force- und Password-Spraying-Versuche.
+- Benutzernamen werden in der Rate-Limit-Datenbank ausschließlich als Hash gespeichert.
+- Netzwerkzielprüfungen blockieren Loopback-, Link-Local-, reservierte und standardmäßig private Integrationsziele, ohne private Management-Adressen von Switches auszuschließen.
+- Private OIDC- und Webhook-Ziele können bei Bedarf ausdrücklich über `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS=1` zugelassen werden.
+- Eine Content Security Policy, Permissions Policy und Cross-Origin-Opener-Policy wurden ergänzt.
+- Die PHP-Session-Konfiguration wurde weiter gehärtet.
+- Neue automatisierte Regressionstests prüfen Verschlüsselung, Kontextbindung, Netzwerkzielschutz und Anmeldesperren.
+
+> [!IMPORTANT]
+> Vor dem ersten Start von Version 1.4.9 muss ein dauerhafter `SWITCHLY_SECRET_KEY` erzeugt und in `.env` eingetragen werden:
+>
+> ```bash
+> openssl rand -base64 32
+> ```
+>
+> Der Schlüssel darf anschließend nicht geändert oder verloren werden. Ohne den ursprünglichen Schlüssel können verschlüsselte Zugangsdaten nicht wiederhergestellt werden.
+
 ## [1.4.8-beta] – 2026-09-29
 
-##Added
+### Added
 
 - Gmail-Konten können nun alternativ über OAuth 2.0 und die Gmail API angebunden werden.
 - Einzelne Switches können vom Alert-Monitoring ausgeschlossen werden.
 - Die Sprache der Benutzeroberfläche kann zwischen Deutsch und Englisch umgeschaltet werden.
 - Unterstützung für den MikroTik CRS354-48G-4S+2Q+ hinzugefügt.
 
-##Fixed
+### Fixed
 
 - Der E-Mail-Verbindungstest zeigt nun die konkrete SMTP-Fehlermeldung an.
 - Nach einem erfolgreichen Alert-Test oder einer Änderung der Alert-Konfiguration werden zuvor fehlgeschlagene und noch nicht versendete Ausfallalarme automatisch reaktiviert. Dadurch können sie bereits beim nächsten Worker-Durchlauf erneut zugestellt werden.
@@ -83,6 +121,44 @@ Diese Datei dokumentiert die offiziellen Veröffentlichungen von Switchly.
 </div>
 
 This file documents official Switchly releases.
+
+## [1.4.9-beta] – 2026-10-25
+
+### Changed
+
+- The container image now uses PHP 8.5.12 on Debian Trixie with Apache 2.4.69.
+- The new `SWITCHLY_SECRET_KEY` environment variable is required to encrypt stored credentials.
+- The installation, configuration, operations, and security documentation has been updated for the new protections.
+- Backups must include both the SQLite database and the `.env` file containing the corresponding `SWITCHLY_SECRET_KEY`.
+
+### Fixed
+
+- Existing unencrypted switch, SMTP, OAuth, webhook, and TOTP secrets are encrypted automatically in a database transaction on the first start after upgrading.
+- DNS responses used by outbound OIDC and webhook connections are validated and pinned to their respective cURL requests, mitigating DNS-rebinding attacks.
+- Password verification is also performed for unknown usernames to prevent account enumeration through response-time differences.
+- Outdated or contradictory documentation about stored secrets has been corrected.
+
+### Security
+
+- Updated PHP to version 8.5.12 to address vulnerabilities including `CVE-2026-109618` and `CVE-2026-109619`.
+- Updated Apache to version 2.4.69 to address known vulnerabilities including `CVE-2026-57941`, `CVE-2026-56154`, and `CVE-2026-59797`.
+- Stored device, SMTP, OAuth, webhook, and TOTP secrets are encrypted and authenticated using AES-256-GCM.
+- Temporary login and TOTP limits per account and source IP prevent unlimited brute-force and password-spraying attempts.
+- Usernames are stored only as hashes in the rate-limit database.
+- Network target validation blocks loopback, link-local, reserved, and private integration targets by default without blocking private switch-management addresses.
+- Private OIDC and webhook targets can be explicitly enabled with `SWITCHLY_ALLOW_PRIVATE_INTEGRATIONS=1`.
+- Added a Content Security Policy, Permissions Policy, and Cross-Origin-Opener-Policy.
+- Added further PHP session hardening.
+- New automated regression tests cover encryption, context binding, network-target protection, and authentication limits.
+
+> [!IMPORTANT]
+> Before starting version 1.4.9 for the first time, generate a persistent `SWITCHLY_SECRET_KEY` and add it to `.env`:
+>
+> ```bash
+> openssl rand -base64 32
+> ```
+>
+> Do not change or lose this key after deployment. Encrypted credentials cannot be recovered without the original key.
 
 ## [1.4.8-beta] – 2026-09-29
 

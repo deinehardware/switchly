@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/TOTP.php';
 require_once __DIR__ . '/Logger.php';
+require_once __DIR__ . '/SecretStore.php';
 
 /**
  * Implements authenticated TOTP self-service independently of HTTP transport.
@@ -39,7 +40,7 @@ final class TwoFactorService
         $stmt = Database::getConnection()->prepare(
             'UPDATE users SET two_factor_secret = :secret WHERE id = :id'
         );
-        $stmt->execute(['secret' => $secret, 'id' => $user['id']]);
+        $stmt->execute(['secret' => SecretStore::encrypt($secret, 'users:' . $user['id'] . ':two_factor_secret'), 'id' => $user['id']]);
 
         return [
             'success' => true,
@@ -104,6 +105,6 @@ final class TwoFactorService
             throw new DomainException('Benutzer nicht gefunden.');
         }
 
-        return $user;
+        return SecretStore::decryptUser($user);
     }
 }

@@ -11,6 +11,8 @@ require_once __DIR__ . '/../../src/Api.php';
 require_once __DIR__ . '/../../src/SwOS.php';
 require_once __DIR__ . '/../../src/Logger.php';
 require_once __DIR__ . '/../../src/AlertService.php';
+require_once __DIR__ . '/../../src/SecretStore.php';
+require_once __DIR__ . '/../../src/NetworkPolicy.php';
 
 Api::bootstrap();
 $user = Api::requirePermission('switches.view');
@@ -30,6 +32,8 @@ try {
     $stmt->execute(['id' => $id]);
     $switch = $stmt->fetch();
     if (!$switch) Api::respond(['error' => 'Switch nicht gefunden.', 'online' => false], 404);
+    $switch = SecretStore::decryptSwitch($switch);
+    NetworkPolicy::requireSwitchHost((string)$switch['host']);
 
     $cacheStmt = $db->prepare('SELECT * FROM switch_cache WHERE switch_id = :id');
     $cacheStmt->execute(['id' => $id]);

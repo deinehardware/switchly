@@ -7,6 +7,8 @@ require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/EmailService.php';
 require_once __DIR__ . '/Logger.php';
 require_once __DIR__ . '/AppInfo.php';
+require_once __DIR__ . '/SecretStore.php';
+require_once __DIR__ . '/NetworkPolicy.php';
 
 /**
  * Implements the single configurable OpenID Connect provider.
@@ -82,7 +84,7 @@ final class SsoService
             'base' => $publicBaseUrl,
             'discovery' => $discoveryUrl,
             'client_id' => substr($clientId, 0, 500),
-            'secret' => $secret,
+            'secret' => SecretStore::encrypt($secret, 'oidc:1:client_secret'),
             'scopes' => substr($scopes, 0, 500),
             'auth' => $authMethod,
             'public' => $publicClient ? 1 : 0,
@@ -239,6 +241,7 @@ final class SsoService
     {
         $settings = Database::getConnection()->query('SELECT * FROM oidc_settings WHERE id=1')->fetch();
         if (!$settings) throw new RuntimeException('OpenID-Connect-Einstellungen konnten nicht geladen werden.');
+        $settings['client_secret'] = SecretStore::decrypt((string)$settings['client_secret'], 'oidc:1:client_secret');
         return $settings;
     }
 
@@ -519,6 +522,8 @@ final class SsoService
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_ENCODING => '',
         ];
+        $resolve = NetworkPolicy::curlResolve($url, !empty($network['allow_http']), 'SSO-URL');
+        if ($resolve !== []) $options[CURLOPT_RESOLVE] = $resolve;
         if ($method === 'POST') {
             $options[CURLOPT_POST] = true;
             $options[CURLOPT_POSTFIELDS] = http_build_query($fields, '', '&', PHP_QUERY_RFC3986);
@@ -550,6 +555,9 @@ final class SsoService
         if (!filter_var($url, FILTER_VALIDATE_URL) || !in_array($scheme, $allowedSchemes, true) || (string)parse_url($url, PHP_URL_HOST) === '' || (string)parse_url($url, PHP_URL_USER) !== '' || (string)parse_url($url, PHP_URL_PASS) !== '') {
             throw new RuntimeException($label . ' muss eine gültige ' . (!empty($network['allow_http']) ? 'HTTP-/HTTPS-' : 'HTTPS-') . 'Adresse ohne eingebettete Zugangsdaten sein.');
         }
+        // The public CMS URL is only emitted into redirects and mail links.
+        // Provider endpoints, in contrast, are contacted by the server.
+        if ($label !== 'Öffentliche CMS-URL') NetworkPolicy::requireIntegrationUrl($url, !empty($network['allow_http']), $label);
     }
 
     /** Leitet die zulässigen Transportoptionen aus der Anbieterkonfiguration ab. */

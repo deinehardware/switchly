@@ -12,6 +12,8 @@ require_once __DIR__ . '/../src/Database.php';
 require_once __DIR__ . '/../src/SwOS.php';
 require_once __DIR__ . '/../src/AlertService.php';
 require_once __DIR__ . '/../src/Logger.php';
+require_once __DIR__ . '/../src/SecretStore.php';
+require_once __DIR__ . '/../src/NetworkPolicy.php';
 
 // Verhindert parallele Worker-Läufe und damit doppelte Messwerte oder Alarme.
 $lock = fopen(sys_get_temp_dir() . '/switchly-monitor.lock', 'c');
@@ -49,6 +51,8 @@ try {
         $sampledAt = time();
 
         try {
+            $switch = SecretStore::decryptSwitch($switch);
+            NetworkPolicy::requireSwitchHost((string)$switch['host']);
             // Liest System- und Portdaten, aktualisiert den Cache und speichert ein Sample.
             $client = new SwOS([
                 'host' => $switch['host'],

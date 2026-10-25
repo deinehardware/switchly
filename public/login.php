@@ -31,12 +31,17 @@ if (!empty($_SESSION['sso_error'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Schließt eine bereits begonnene Anmeldung mit dem TOTP-Code ab.
     if (($_POST['action'] ?? '') === 'verify_2fa') {
-        if (Auth::verifyPending2FA((string)($_POST['code'] ?? ''))) {
+        $result = Auth::verifyPending2FA((string)($_POST['code'] ?? ''));
+        if ($result === 'success') {
             header('Location: index.php');
             exit;
         }
         $twoFaStep = true;
-        $error = 'Der 2FA-Code ist ungültig oder abgelaufen.';
+        if ($result === 'rate_limited') {
+            http_response_code(429);
+            header('Retry-After: 900');
+        }
+        $error = $result === 'rate_limited' ? 'Zu viele Versuche. Bitte warte 15 Minuten.' : 'Der 2FA-Code ist ungültig oder abgelaufen.';
     } else {
         // Prüft die primären Zugangsdaten und entscheidet, ob ein TOTP-Schritt folgt.
         $username = trim((string)($_POST['username'] ?? ''));
@@ -50,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $twoFaStep = true;
         } elseif ($result === 'email_unverified') {
             $error = 'Bitte bestätige zuerst deine E-Mail-Adresse.';
+        } elseif ($result === 'rate_limited') {
+            http_response_code(429);
+            header('Retry-After: 900');
+            $error = 'Zu viele Anmeldeversuche. Bitte warte 15 Minuten.';
         } else {
             $error = 'Ungültiger Benutzername oder Passwort.';
         }

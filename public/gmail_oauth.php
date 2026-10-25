@@ -9,6 +9,7 @@ require_once __DIR__ . '/../src/Permission.php';
 require_once __DIR__ . '/../src/EmailService.php';
 require_once __DIR__ . '/../src/GmailOAuthService.php';
 require_once __DIR__ . '/../src/Logger.php';
+require_once __DIR__ . '/../src/SecretStore.php';
 
 Auth::startSession();
 Auth::requireLogin();
@@ -61,7 +62,7 @@ try {
     ]);
     $refreshToken = trim((string)($tokens['refresh_token'] ?? ''));
     if ($refreshToken === '') throw new RuntimeException('Google hat kein Refresh-Token geliefert. Verbindung bitte erneut starten.');
-    Database::getConnection()->prepare('UPDATE alert_settings SET gmail_refresh_token=:token,gmail_oauth_enabled=1,updated_at=CURRENT_TIMESTAMP WHERE id=1')->execute(['token' => $refreshToken]);
+    Database::getConnection()->prepare('UPDATE alert_settings SET gmail_refresh_token=:token,gmail_oauth_enabled=1,updated_at=CURRENT_TIMESTAMP WHERE id=1')->execute(['token' => SecretStore::encrypt($refreshToken, 'alerts:1:gmail_refresh_token')]);
     Logger::write('INFO', 'GMAIL_OAUTH_CONNECTED', 'Gmail OAuth2 wurde verbunden.');
     header('Location: index.php#alerts');
     exit;
