@@ -1,5 +1,5 @@
 # PHP 8.5.12 fixes CVE-2026-109618/109619; Trixie supplies Apache 2.4.69.
-FROM php:8.5.12-apache-trixie
+FROM php:8.6.0RC5-apache-trixie
 
 ARG DEBIAN_FRONTEND=noninteractive
 
